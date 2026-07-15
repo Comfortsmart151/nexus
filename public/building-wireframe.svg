@@ -1,0 +1,119 @@
+<svg
+  width="1400"
+  height="1000"
+  viewBox="0 0 1400 1000"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <g
+    stroke="#2563EB"
+    stroke-width="1.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <!-- Estructura principal -->
+    <g opacity="0.42">
+      <path d="M420 865V230L760 92L1060 235V865" />
+      <path d="M760 92V865" />
+      <path d="M420 230L760 365L1060 235" />
+
+      <!-- Niveles -->
+      <path d="M420 320L760 455L1060 325" />
+      <path d="M420 410L760 545L1060 415" />
+      <path d="M420 500L760 635L1060 505" />
+      <path d="M420 590L760 725L1060 595" />
+      <path d="M420 680L760 815L1060 685" />
+
+      <!-- Columnas -->
+      <path d="M500 198V865" />
+      <path d="M585 163V865" />
+      <path d="M675 127V865" />
+      <path d="M845 133V865" />
+      <path d="M930 173V865" />
+      <path d="M995 205V865" />
+
+      <!-- Diagonales interiores -->
+      <path d="M420 320L760 185" />
+      <path d="M420 410L760 275" />
+      <path d="M420 500L760 365" />
+      <path d="M420 590L760 455" />
+      <path d="M420 680L760 545" />
+
+      <path d="M760 185L1060 320" />
+      <path d="M760 275L1060 410" />
+      <path d="M760 365L1060 500" />
+      <path d="M760 455L1060 590" />
+      <path d="M760 545L1060 680" />
+
+      <!-- Volumen secundario -->
+      <path d="M760 455L1180 330V820L760 865" />
+      <path d="M1060 235L1180 330" />
+      <path d="M1060 325L1180 415" />
+      <path d="M1060 415L1180 500" />
+      <path d="M1060 505L1180 590" />
+      <path d="M1060 595L1180 680" />
+      <path d="M1060 685L1180 770" />
+
+      <!-- Líneas verticales del volumen secundario -->
+      <path d="M1090 255V835" />
+      <path d="M1120 280V830" />
+      <path d="M1150 305V825" />
+    </g>
+
+    <!-- Líneas técnicas -->
+    <g opacity="0.22">
+      <path d="M330 865H1220" />
+      <path d="M290 905H1260" />
+      <path d="M250 945H1300" />
+
+      <path d="M760 92V38" />
+      <path d="M420 230L350 260" />
+      <path d="M1060 235L1130 205" />
+
+      <path d="M370 865L760 705L1130 865" />
+      <path d="M410 905L760 765L1090 905" />
+
+      <path d="M420 230L420 170" />
+      <path d="M1060 235L1060 175" />
+      <path d="M1180 330L1230 305" />
+    </g>
+
+    <!-- Cotas -->
+    <g opacity="0.16">
+      <path d="M360 230V865" />
+      <path d="M340 230H380" />
+      <path d="M340 865H380" />
+
+      <path d="M420 175H1060" />
+      <path d="M420 155V195" />
+      <path d="M1060 155V195" />
+
+      <path d="M1110 235V820" />
+      <path d="M1090 235H1130" />
+      <path d="M1090 820H1130" />
+    </g>
+  </g>
+
+  <!-- Brillo central -->
+  <defs>
+    <radialGradient
+      id="buildingGlow"
+      cx="0"
+      cy="0"
+      r="1"
+      gradientUnits="userSpaceOnUse"
+      gradientTransform="translate(760 500) rotate(90) scale(420 520)"
+    >
+      <stop stop-color="#2563EB" stop-opacity="0.18" />
+      <stop offset="1" stop-color="#2563EB" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <ellipse
+    cx="760"
+    cy="500"
+    rx="520"
+    ry="420"
+    fill="url(#buildingGlow)"
+  />
+</svg>

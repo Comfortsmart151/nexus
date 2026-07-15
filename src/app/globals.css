@@ -1,26 +1,74 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --nexus-primary: #2563eb;
+  --nexus-accent: #38bdf8;
+  --nexus-deep: #020817;
+  --nexus-surface: #0b1428;
+  --nexus-border: #1e293b;
+
+  --nexus-text: #f8fafc;
+  --nexus-muted: #94a3b8;
+
+  --nexus-success: #22c55e;
+  --nexus-warning: #f59e0b;
+  --nexus-danger: #ef4444;
+  --nexus-info: #38bdf8;
+
+  --background: var(--nexus-deep);
+  --foreground: var(--nexus-text);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+[data-theme="light"] {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --nexus-surface: #ffffff;
+  --nexus-border: #dbe3ef;
+  --nexus-text: #0f172a;
+  --nexus-muted: #64748b;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+[data-theme="dark"] {
+  --background: var(--nexus-deep);
+  --foreground: var(--nexus-text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
+  min-height: 100vh;
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+.nexus-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.nexus-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgb(37 99 235 / 0.1);
 }

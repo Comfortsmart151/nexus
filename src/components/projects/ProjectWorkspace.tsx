@@ -17,6 +17,7 @@ import {
 import { useEffect, useState } from "react";
 
 import NexusLogo from "@/components/ui/NexusLogo";
+import { ProjectService } from "@/services/project.service";
 import type { Project } from "@/types/project";
 
 interface ProjectWorkspaceProps {
@@ -68,12 +69,7 @@ export default function ProjectWorkspace({
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const storedProjects = JSON.parse(
-      localStorage.getItem("nexus-projects") || "[]",
-    ) as Project[];
-
-    const selectedProject =
-      storedProjects.find((item) => item.id === projectId) || null;
+    const selectedProject = ProjectService.findById(projectId);
 
     setProject(selectedProject);
     setLoaded(true);
@@ -105,7 +101,8 @@ export default function ProjectWorkspace({
     );
   }
 
-  const progress = 20;
+  const progress = project.progress ?? 20;
+  const chaptersHref = `/projects/${project.id}/chapters`;
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
@@ -127,6 +124,10 @@ export default function ProjectWorkspace({
             </p>
 
             <p className="mt-2 font-semibold">{project.name}</p>
+
+            <p className="mt-1 text-sm text-slate-400">
+              {project.code}
+            </p>
 
             <p className="mt-1 text-sm text-slate-400">
               {project.projectType}
@@ -175,10 +176,13 @@ export default function ProjectWorkspace({
               </div>
             </div>
 
-            <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-500">
-              Continuar proyecto
+            <Link
+              href={chaptersHref}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-500"
+            >
+              Crear capítulos
               <ArrowRight className="h-5 w-5" />
-            </button>
+            </Link>
           </header>
 
           <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
@@ -272,13 +276,19 @@ export default function ProjectWorkspace({
                       </div>
                     </div>
 
-                    {current ? (
-                      <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-500">
-                        Continuar
+                    {stage.id === "chapters" ? (
+                      <Link
+                        href={chaptersHref}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-500"
+                      >
+                        Crear capítulos
                         <ArrowRight className="h-5 w-5" />
-                      </button>
+                      </Link>
                     ) : completed ? (
-                      <button className="rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-600 transition hover:border-blue-300 hover:text-blue-700">
+                      <button
+                        type="button"
+                        className="rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-600 transition hover:border-blue-300 hover:text-blue-700"
+                      >
                         Revisar
                       </button>
                     ) : (

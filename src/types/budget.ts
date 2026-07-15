@@ -13,6 +13,7 @@ export type ResourceType =
 
 export interface CostResource {
   id: string;
+  itemId: string;
   type: ResourceType;
   code?: string;
   name: string;
@@ -20,17 +21,20 @@ export interface CostResource {
   quantity: number;
   unitPrice: number;
   wastePercentage?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface BudgetItem {
   id: string;
+  projectId: string;
   chapterId: string;
   code?: string;
   name: string;
   description?: string;
   unit: string;
   quantity: number;
-  resources: CostResource[];
+  status: "unpriced" | "in-progress" | "priced";
   createdAt: string;
   updatedAt: string;
 }
@@ -42,7 +46,6 @@ export interface BudgetChapter {
   name: string;
   description?: string;
   order: number;
-  items: BudgetItem[];
   createdAt: string;
   updatedAt: string;
 }
@@ -61,7 +64,6 @@ export interface Budget {
   version: number;
   status: BudgetStatus;
   currency: "DOP" | "USD";
-  chapters: BudgetChapter[];
   adjustments: BudgetAdjustments;
   createdAt: string;
   updatedAt: string;

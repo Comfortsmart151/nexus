@@ -13,3 +13,7 @@ export function generateChapterId(lastNumber: number) {
 export function generateItemId(lastNumber: number) {
   return `ITM-${String(lastNumber).padStart(4, "0")}`;
 }
+
+export function generateResourceId(lastNumber: number) {
+  return `RES-${String(lastNumber).padStart(5, "0")}`;
+}

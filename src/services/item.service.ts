@@ -1,30 +1,77 @@
 import { LocalStorageRepository } from "@/repositories/localStorage.repository";
-import type { BudgetItem } from "@/types/budget";
+import { ResourceService } from "@/services/resource.service";
+import type {
+  ApuAdjustments,
+  ApuSummary,
+  BudgetItem,
+} from "@/types/budget";
 import { generateItemId } from "@/utils/idGenerator";
 
 const ITEMS_KEY = "nexus-items";
 const ITEM_COUNTER_KEY = "nexus-item-counter";
 
+const DEFAULT_APU_ADJUSTMENTS: ApuAdjustments = {
+  indirectCostsPercentage: 0,
+  contingencyPercentage: 0,
+  profitPercentage: 0,
+  taxPercentage: 0,
+};
+
 export interface CreateItemInput {
   projectId: string;
   chapterId: string;
+  code?: string;
   name: string;
   description?: string;
   unit: string;
   quantity?: number;
+  adjustments?: Partial<ApuAdjustments>;
 }
 
 export interface UpdateItemInput {
+  chapterId?: string;
+  code?: string;
   name?: string;
   description?: string;
   unit?: string;
   quantity?: number;
   status?: BudgetItem["status"];
+  adjustments?: Partial<ApuAdjustments>;
+  unitPrice?: number;
 }
 
 export class ItemService {
   static findAll(): BudgetItem[] {
-    return LocalStorageRepository.get<BudgetItem[]>(ITEMS_KEY) ?? [];
+    const items =
+      LocalStorageRepository.get<BudgetItem[]>(ITEMS_KEY) ?? [];
+
+    /*
+     * Normaliza partidas creadas antes de que existieran
+     * los ajustes y el precio unitario dentro del modelo.
+     */
+    return items.map((item) => ({
+      ...item,
+      quantity: Math.max(0, item.quantity ?? 0),
+      unitPrice: Math.max(0, item.unitPrice ?? 0),
+      adjustments: {
+        indirectCostsPercentage: Math.max(
+          0,
+          item.adjustments?.indirectCostsPercentage ?? 0,
+        ),
+        contingencyPercentage: Math.max(
+          0,
+          item.adjustments?.contingencyPercentage ?? 0,
+        ),
+        profitPercentage: Math.max(
+          0,
+          item.adjustments?.profitPercentage ?? 0,
+        ),
+        taxPercentage: Math.max(
+          0,
+          item.adjustments?.taxPercentage ?? 0,
+        ),
+      },
+    }));
   }
 
   static findByProject(projectId: string): BudgetItem[] {
@@ -34,14 +81,24 @@ export class ItemService {
   }
 
   static findByChapter(chapterId: string): BudgetItem[] {
-    return ItemService.findAll().filter(
-      (item) => item.chapterId === chapterId,
-    );
+    return ItemService.findAll()
+      .filter((item) => item.chapterId === chapterId)
+      .sort((a, b) =>
+        (a.code ?? a.id).localeCompare(
+          b.code ?? b.id,
+          undefined,
+          {
+            numeric: true,
+          },
+        ),
+      );
   }
 
   static findById(itemId: string): BudgetItem | null {
     return (
-      ItemService.findAll().find((item) => item.id === itemId) ?? null
+      ItemService.findAll().find(
+        (item) => item.id === itemId,
+      ) ?? null
     );
   }
 
@@ -49,7 +106,9 @@ export class ItemService {
     const items = ItemService.findAll();
 
     const currentCounter =
-      LocalStorageRepository.get<number>(ITEM_COUNTER_KEY) ?? 0;
+      LocalStorageRepository.get<number>(
+        ITEM_COUNTER_KEY,
+      ) ?? 0;
 
     const nextCounter = currentCounter + 1;
     const now = new Date().toISOString();
@@ -58,17 +117,48 @@ export class ItemService {
       id: generateItemId(nextCounter),
       projectId: input.projectId,
       chapterId: input.chapterId,
+      code: input.code?.trim() || undefined,
       name: input.name.trim(),
       description: input.description?.trim() || "",
       unit: input.unit.trim(),
-      quantity: input.quantity ?? 0,
+      quantity: Math.max(0, input.quantity ?? 0),
       status: "unpriced",
+      adjustments: {
+        indirectCostsPercentage: Math.max(
+          0,
+          input.adjustments?.indirectCostsPercentage ??
+            DEFAULT_APU_ADJUSTMENTS.indirectCostsPercentage,
+        ),
+        contingencyPercentage: Math.max(
+          0,
+          input.adjustments?.contingencyPercentage ??
+            DEFAULT_APU_ADJUSTMENTS.contingencyPercentage,
+        ),
+        profitPercentage: Math.max(
+          0,
+          input.adjustments?.profitPercentage ??
+            DEFAULT_APU_ADJUSTMENTS.profitPercentage,
+        ),
+        taxPercentage: Math.max(
+          0,
+          input.adjustments?.taxPercentage ??
+            DEFAULT_APU_ADJUSTMENTS.taxPercentage,
+        ),
+      },
+      unitPrice: 0,
       createdAt: now,
       updatedAt: now,
     };
 
-    LocalStorageRepository.save(ITEMS_KEY, [...items, item]);
-    LocalStorageRepository.save(ITEM_COUNTER_KEY, nextCounter);
+    LocalStorageRepository.save(ITEMS_KEY, [
+      ...items,
+      item,
+    ]);
+
+    LocalStorageRepository.save(
+      ITEM_COUNTER_KEY,
+      nextCounter,
+    );
 
     return item;
   }
@@ -79,20 +169,74 @@ export class ItemService {
   ): BudgetItem | null {
     const items = ItemService.findAll();
 
-    const itemIndex = items.findIndex((item) => item.id === itemId);
+    const itemIndex = items.findIndex(
+      (item) => item.id === itemId,
+    );
 
-    if (itemIndex === -1) return null;
+    if (itemIndex === -1) {
+      return null;
+    }
 
     const currentItem = items[itemIndex];
 
+    const updatedUnitPrice =
+      input.unitPrice !== undefined
+        ? Math.max(0, input.unitPrice)
+        : currentItem.unitPrice;
+
     const updatedItem: BudgetItem = {
       ...currentItem,
-      name: input.name?.trim() ?? currentItem.name,
+      chapterId:
+        input.chapterId ?? currentItem.chapterId,
+      code:
+        input.code !== undefined
+          ? input.code.trim() || undefined
+          : currentItem.code,
+      name:
+        input.name !== undefined
+          ? input.name.trim()
+          : currentItem.name,
       description:
-        input.description?.trim() ?? currentItem.description,
-      unit: input.unit?.trim() ?? currentItem.unit,
-      quantity: input.quantity ?? currentItem.quantity,
-      status: input.status ?? currentItem.status,
+        input.description !== undefined
+          ? input.description.trim()
+          : currentItem.description,
+      unit:
+        input.unit !== undefined
+          ? input.unit.trim()
+          : currentItem.unit,
+      quantity:
+        input.quantity !== undefined
+          ? Math.max(0, input.quantity)
+          : currentItem.quantity,
+      adjustments: {
+        indirectCostsPercentage: Math.max(
+          0,
+          input.adjustments
+            ?.indirectCostsPercentage ??
+            currentItem.adjustments
+              .indirectCostsPercentage,
+        ),
+        contingencyPercentage: Math.max(
+          0,
+          input.adjustments?.contingencyPercentage ??
+            currentItem.adjustments
+              .contingencyPercentage,
+        ),
+        profitPercentage: Math.max(
+          0,
+          input.adjustments?.profitPercentage ??
+            currentItem.adjustments.profitPercentage,
+        ),
+        taxPercentage: Math.max(
+          0,
+          input.adjustments?.taxPercentage ??
+            currentItem.adjustments.taxPercentage,
+        ),
+      },
+      unitPrice: updatedUnitPrice,
+      status:
+        input.status ??
+        ItemService.resolveStatus(updatedUnitPrice),
       updatedAt: new Date().toISOString(),
     };
 
@@ -107,29 +251,154 @@ export class ItemService {
     itemId: string,
     chapterId: string,
   ): BudgetItem | null {
-    const item = ItemService.findById(itemId);
-
-    if (!item) return null;
-
-    return ItemService.update(itemId, {
-      ...item,
-      status: item.status,
-    });
+    return ItemService.update(itemId, { chapterId });
   }
 
   static delete(itemId: string): boolean {
     const items = ItemService.findAll();
 
-    const filteredItems = items.filter((item) => item.id !== itemId);
+    const filteredItems = items.filter(
+      (item) => item.id !== itemId,
+    );
 
-    if (filteredItems.length === items.length) return false;
+    if (filteredItems.length === items.length) {
+      return false;
+    }
 
-    LocalStorageRepository.save(ITEMS_KEY, filteredItems);
+    LocalStorageRepository.save(
+      ITEMS_KEY,
+      filteredItems,
+    );
+
+    /*
+     * Al eliminar una partida también eliminamos
+     * todos los recursos pertenecientes a su APU.
+     */
+    ResourceService.deleteByItem(itemId);
 
     return true;
   }
 
   static countByChapter(chapterId: string): number {
     return ItemService.findByChapter(chapterId).length;
+  }
+
+  static calculateApuSummary(
+    itemId: string,
+  ): ApuSummary | null {
+    const item = ItemService.findById(itemId);
+
+    if (!item) {
+      return null;
+    }
+
+    const materialsSubtotal =
+      ResourceService.calculateTypeTotal(
+        itemId,
+        "material",
+      );
+
+    const laborSubtotal =
+      ResourceService.calculateTypeTotal(
+        itemId,
+        "labor",
+      );
+
+    const equipmentSubtotal =
+      ResourceService.calculateTypeTotal(
+        itemId,
+        "equipment",
+      );
+
+    const subcontractSubtotal =
+      ResourceService.calculateTypeTotal(
+        itemId,
+        "subcontract",
+      );
+
+    const directCost =
+      materialsSubtotal +
+      laborSubtotal +
+      equipmentSubtotal +
+      subcontractSubtotal;
+
+    const indirectCostsAmount =
+      directCost *
+      (item.adjustments.indirectCostsPercentage /
+        100);
+
+    const contingencyAmount =
+      directCost *
+      (item.adjustments.contingencyPercentage /
+        100);
+
+    const costBeforeProfit =
+      directCost +
+      indirectCostsAmount +
+      contingencyAmount;
+
+    const profitAmount =
+      costBeforeProfit *
+      (item.adjustments.profitPercentage / 100);
+
+    const unitPriceBeforeTax =
+      costBeforeProfit + profitAmount;
+
+    const taxAmount =
+      unitPriceBeforeTax *
+      (item.adjustments.taxPercentage / 100);
+
+    const finalUnitPrice =
+      unitPriceBeforeTax + taxAmount;
+
+    return {
+      materialsSubtotal,
+      laborSubtotal,
+      equipmentSubtotal,
+      subcontractSubtotal,
+      directCost,
+      indirectCostsAmount,
+      contingencyAmount,
+      profitAmount,
+      taxAmount,
+      unitPriceBeforeTax,
+      finalUnitPrice,
+    };
+  }
+
+  static recalculateUnitPrice(
+    itemId: string,
+  ): BudgetItem | null {
+    const summary =
+      ItemService.calculateApuSummary(itemId);
+
+    if (!summary) {
+      return null;
+    }
+
+    return ItemService.update(itemId, {
+      unitPrice: summary.finalUnitPrice,
+      status: ItemService.resolveStatus(
+        summary.finalUnitPrice,
+      ),
+    });
+  }
+
+  static calculateItemAmount(
+    itemId: string,
+  ): number {
+    const item = ItemService.findById(itemId);
+
+    if (!item) {
+      return 0;
+    }
+
+    return item.quantity * item.unitPrice;
+  }
+
+  private static resolveStatus(
+    unitPrice: number,
+  ): BudgetItem["status"] {
+    return unitPrice > 0 ? "priced" : "unpriced";
   }
 }

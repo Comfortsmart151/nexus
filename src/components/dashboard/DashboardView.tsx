@@ -6,6 +6,7 @@ import {
   FileSpreadsheet,
   FolderKanban,
   LayoutDashboard,
+  Library,
   Plus,
   Settings,
   Upload,
@@ -32,27 +33,38 @@ export default function DashboardView() {
 
           <nav className="mt-10 space-y-2">
             <NavigationItem
+              href="/dashboard"
               icon={LayoutDashboard}
               label="Dashboard"
               active
             />
 
             <NavigationItem
+              href="/dashboard"
               icon={FolderKanban}
               label="Proyectos"
             />
 
             <NavigationItem
+              href="/library"
+              icon={Library}
+              label="Biblioteca"
+            />
+
+            <NavigationItem
+              href="/dashboard"
               icon={FileSpreadsheet}
               label="Presupuestos"
             />
 
             <NavigationItem
+              href="/dashboard"
               icon={BarChart3}
               label="Reportes"
             />
 
             <NavigationItem
+              href="/dashboard"
               icon={Settings}
               label="Configuración"
             />
@@ -76,7 +88,8 @@ export default function DashboardView() {
               </h1>
 
               <p className="mt-2 text-slate-500">
-                Gestiona tus proyectos y presupuestos desde un solo lugar.
+                Gestiona tus proyectos, presupuestos y recursos desde un
+                solo lugar.
               </p>
             </div>
 
@@ -130,9 +143,10 @@ export default function DashboardView() {
                 />
 
                 <ActionCard
-                  icon={FolderKanban}
-                  title="Abrir proyecto"
-                  description="Consulta y continúa un proyecto existente."
+                  icon={Library}
+                  title="Abrir biblioteca"
+                  description="Registra materiales, mano de obra y equipos."
+                  href="/library"
                 />
 
                 <ActionCard
@@ -144,20 +158,29 @@ export default function DashboardView() {
             </section>
           ) : (
             <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-              <div>
-                <h2 className="text-2xl font-bold">Continúa donde lo dejaste</h2>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    Continúa donde lo dejaste
+                  </h2>
 
-                <p className="mt-2 text-slate-500">
-                  Haz clic sobre un proyecto para continuar.
-                </p>
+                  <p className="mt-2 text-slate-500">
+                    Haz clic sobre un proyecto para continuar.
+                  </p>
+                </div>
+
+                <Link
+                  href="/library"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:border-blue-600 hover:bg-blue-600 hover:text-white"
+                >
+                  <Library className="h-4 w-4" />
+                  Abrir biblioteca
+                </Link>
               </div>
 
               <div className="mt-8 space-y-4">
                 {projects.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                  />
+                  <ProjectCard key={project.id} project={project} />
                 ))}
               </div>
             </section>
@@ -169,17 +192,19 @@ export default function DashboardView() {
 }
 
 function NavigationItem({
+  href,
   icon: Icon,
   label,
   active = false,
 }: {
+  href: string;
   icon: React.ElementType;
   label: string;
   active?: boolean;
 }) {
   return (
-    <button
-      type="button"
+    <Link
+      href={href}
       className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition ${
         active
           ? "bg-blue-50 font-semibold text-blue-700"
@@ -188,7 +213,7 @@ function NavigationItem({
     >
       <Icon className="h-5 w-5" />
       {label}
-    </button>
+    </Link>
   );
 }
 
@@ -215,9 +240,7 @@ function MetricCard({
         {title}
       </div>
 
-      <h3 className="mt-5 text-4xl font-black tracking-tight">
-        {value}
-      </h3>
+      <h3 className="mt-5 text-4xl font-black tracking-tight">{value}</h3>
     </article>
   );
 }
@@ -241,9 +264,7 @@ function ActionCard({
 
       <h3 className="mt-6 text-lg font-semibold">{title}</h3>
 
-      <p className="mt-3 text-sm leading-6 text-slate-500">
-        {description}
-      </p>
+      <p className="mt-3 text-sm leading-6 text-slate-500">{description}</p>
     </div>
   );
 

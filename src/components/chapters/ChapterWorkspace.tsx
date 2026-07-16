@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowRight,
   BookOpen,
   Check,
   Plus,
@@ -72,9 +73,16 @@ export default function ChapterWorkspace({
   }
 
   function deleteChapter(chapterId: string) {
-    const confirmed = window.confirm(
-      "¿Deseas eliminar este capítulo?",
-    );
+    const itemCount = ItemService.countByChapter(chapterId);
+
+    const message =
+      itemCount > 0
+        ? `Este capítulo contiene ${itemCount} ${
+            itemCount === 1 ? "partida" : "partidas"
+          }. ¿Deseas eliminarlo de todos modos?`
+        : "¿Deseas eliminar este capítulo?";
+
+    const confirmed = window.confirm(message);
 
     if (!confirmed) return;
 
@@ -147,7 +155,7 @@ export default function ChapterWorkspace({
         <section className="flex-1 p-6 lg:p-10">
           <Link
             href={`/projects/${project.id}`}
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-blue-600 lg:hidden"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-blue-600 lg:hidden"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver al proyecto
@@ -276,18 +284,23 @@ export default function ChapterWorkspace({
                         chapter.id,
                       );
 
+                      const itemsHref = `/projects/${project.id}/chapters/${chapter.id}/items`;
+
                       return (
                         <article
                           key={chapter.id}
-                          className="group flex flex-col gap-4 rounded-2xl border border-slate-200 p-5 transition hover:border-blue-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                          className="group flex flex-col gap-5 rounded-2xl border border-slate-200 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 font-bold text-blue-700">
+                          <Link
+                            href={itemsHref}
+                            className="flex flex-1 items-center gap-4"
+                          >
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 font-bold text-blue-700 transition group-hover:bg-blue-600 group-hover:text-white">
                               {String(index + 1).padStart(2, "0")}
                             </div>
 
                             <div>
-                              <h3 className="font-semibold">
+                              <h3 className="font-semibold text-slate-950">
                                 {chapter.name}
                               </h3>
 
@@ -298,18 +311,28 @@ export default function ChapterWorkspace({
                                   : "partidas"}
                               </p>
                             </div>
-                          </div>
+                          </Link>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              deleteChapter(chapter.id)
-                            }
-                            className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-400 transition hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Eliminar
-                          </button>
+                          <div className="flex flex-col gap-2 sm:flex-row">
+                            <Link
+                              href={itemsHref}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-600 hover:text-white"
+                            >
+                              Abrir capítulo
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                deleteChapter(chapter.id)
+                              }
+                              className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Eliminar
+                            </button>
+                          </div>
                         </article>
                       );
                     })}

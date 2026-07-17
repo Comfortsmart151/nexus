@@ -11,10 +11,12 @@ import {
   Settings,
   Upload,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import ProjectCard from "@/components/projects/ProjectCard";
 import NexusLogo from "@/components/ui/NexusLogo";
+import { ApuService } from "@/services/apu.service";
+import { ItemService } from "@/services/item.service";
 import { ProjectService } from "@/services/project.service";
 import type { Project } from "@/types/project";
 
@@ -24,6 +26,31 @@ export default function DashboardView() {
   useEffect(() => {
     setProjects(ProjectService.findAll());
   }, []);
+
+  const budgetMetrics = useMemo(() => {
+    const projectIds = new Set(projects.map((project) => project.id));
+
+    const projectItems = ItemService.findAll().filter((item) =>
+      projectIds.has(item.projectId),
+    );
+
+    const projectsWithBudget = new Set(
+      projectItems.map((item) => item.projectId),
+    ).size;
+
+    const totalBudgeted = projectItems.reduce((total, item) => {
+      const calculation = ApuService.calculate(item.id);
+      const unitPrice =
+        calculation?.finalUnitPrice ?? item.unitPrice ?? 0;
+
+      return total + unitPrice * item.quantity;
+    }, 0);
+
+    return {
+      projectsWithBudget,
+      totalBudgeted,
+    };
+  }, [projects]);
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
@@ -40,7 +67,7 @@ export default function DashboardView() {
             />
 
             <NavigationItem
-              href="/dashboard"
+              href="/projects"
               icon={FolderKanban}
               label="Proyectos"
             />
@@ -52,7 +79,7 @@ export default function DashboardView() {
             />
 
             <NavigationItem
-              href="/dashboard"
+              href="/budgets"
               icon={FileSpreadsheet}
               label="Presupuestos"
             />
@@ -111,13 +138,13 @@ export default function DashboardView() {
 
             <MetricCard
               title="Presupuestos"
-              value="0"
+              value={budgetMetrics.projectsWithBudget.toString()}
               color="emerald"
             />
 
             <MetricCard
               title="Valor presupuestado"
-              value="RD$ 0"
+              value={formatCurrency(budgetMetrics.totalBudgeted)}
               color="amber"
             />
           </div>
@@ -170,11 +197,11 @@ export default function DashboardView() {
                 </div>
 
                 <Link
-                  href="/library"
+                  href="/projects"
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:border-blue-600 hover:bg-blue-600 hover:text-white"
                 >
-                  <Library className="h-4 w-4" />
-                  Abrir biblioteca
+                  <FolderKanban className="h-4 w-4" />
+                  Ver proyectos
                 </Link>
               </div>
 
@@ -269,4 +296,12 @@ function ActionCard({
   );
 
   return href ? <Link href={href}>{content}</Link> : content;
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("es-DO", {
+    style: "currency",
+    currency: "DOP",
+    maximumFractionDigits: 2,
+  }).format(value);
 }

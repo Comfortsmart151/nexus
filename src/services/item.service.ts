@@ -4,6 +4,7 @@ import type {
   ApuAdjustments,
   ApuSummary,
   BudgetItem,
+  BudgetItemPriceSource,
 } from "@/types/budget";
 import { generateItemId } from "@/utils/idGenerator";
 
@@ -38,6 +39,7 @@ export interface UpdateItemInput {
   status?: BudgetItem["status"];
   adjustments?: Partial<ApuAdjustments>;
   unitPrice?: number;
+  priceSource?: BudgetItemPriceSource;
 }
 
 export class ItemService {
@@ -45,30 +47,23 @@ export class ItemService {
     const items =
       LocalStorageRepository.get<BudgetItem[]>(ITEMS_KEY) ?? [];
 
-    /*
-     * Normaliza partidas creadas antes de que existieran
-     * los ajustes y el precio unitario dentro del modelo.
-     */
     return items.map((item) => ({
       ...item,
-      quantity: Math.max(0, item.quantity ?? 0),
-      unitPrice: Math.max(0, item.unitPrice ?? 0),
+      quantity: ItemService.sanitizeNumber(item.quantity),
+      unitPrice: ItemService.sanitizeNumber(item.unitPrice),
+      priceSource: item.priceSource ?? "apu",
       adjustments: {
-        indirectCostsPercentage: Math.max(
-          0,
-          item.adjustments?.indirectCostsPercentage ?? 0,
+        indirectCostsPercentage: ItemService.sanitizeNumber(
+          item.adjustments?.indirectCostsPercentage,
         ),
-        contingencyPercentage: Math.max(
-          0,
-          item.adjustments?.contingencyPercentage ?? 0,
+        contingencyPercentage: ItemService.sanitizeNumber(
+          item.adjustments?.contingencyPercentage,
         ),
-        profitPercentage: Math.max(
-          0,
-          item.adjustments?.profitPercentage ?? 0,
+        profitPercentage: ItemService.sanitizeNumber(
+          item.adjustments?.profitPercentage,
         ),
-        taxPercentage: Math.max(
-          0,
-          item.adjustments?.taxPercentage ?? 0,
+        taxPercentage: ItemService.sanitizeNumber(
+          item.adjustments?.taxPercentage,
         ),
       },
     }));
@@ -121,31 +116,34 @@ export class ItemService {
       name: input.name.trim(),
       description: input.description?.trim() || "",
       unit: input.unit.trim(),
-      quantity: Math.max(0, input.quantity ?? 0),
+      quantity: ItemService.sanitizeNumber(
+        input.quantity,
+      ),
       status: "unpriced",
       adjustments: {
-        indirectCostsPercentage: Math.max(
-          0,
-          input.adjustments?.indirectCostsPercentage ??
-            DEFAULT_APU_ADJUSTMENTS.indirectCostsPercentage,
-        ),
-        contingencyPercentage: Math.max(
-          0,
-          input.adjustments?.contingencyPercentage ??
-            DEFAULT_APU_ADJUSTMENTS.contingencyPercentage,
-        ),
-        profitPercentage: Math.max(
-          0,
-          input.adjustments?.profitPercentage ??
-            DEFAULT_APU_ADJUSTMENTS.profitPercentage,
-        ),
-        taxPercentage: Math.max(
-          0,
-          input.adjustments?.taxPercentage ??
-            DEFAULT_APU_ADJUSTMENTS.taxPercentage,
-        ),
+        indirectCostsPercentage:
+          ItemService.sanitizeNumber(
+            input.adjustments?.indirectCostsPercentage ??
+              DEFAULT_APU_ADJUSTMENTS.indirectCostsPercentage,
+          ),
+        contingencyPercentage:
+          ItemService.sanitizeNumber(
+            input.adjustments?.contingencyPercentage ??
+              DEFAULT_APU_ADJUSTMENTS.contingencyPercentage,
+          ),
+        profitPercentage:
+          ItemService.sanitizeNumber(
+            input.adjustments?.profitPercentage ??
+              DEFAULT_APU_ADJUSTMENTS.profitPercentage,
+          ),
+        taxPercentage:
+          ItemService.sanitizeNumber(
+            input.adjustments?.taxPercentage ??
+              DEFAULT_APU_ADJUSTMENTS.taxPercentage,
+          ),
       },
       unitPrice: 0,
+      priceSource: "apu",
       createdAt: now,
       updatedAt: now,
     };
@@ -181,8 +179,11 @@ export class ItemService {
 
     const updatedUnitPrice =
       input.unitPrice !== undefined
-        ? Math.max(0, input.unitPrice)
+        ? ItemService.sanitizeNumber(input.unitPrice)
         : currentItem.unitPrice;
+
+    const updatedPriceSource =
+      input.priceSource ?? currentItem.priceSource;
 
     const updatedItem: BudgetItem = {
       ...currentItem,
@@ -206,34 +207,35 @@ export class ItemService {
           : currentItem.unit,
       quantity:
         input.quantity !== undefined
-          ? Math.max(0, input.quantity)
+          ? ItemService.sanitizeNumber(input.quantity)
           : currentItem.quantity,
       adjustments: {
-        indirectCostsPercentage: Math.max(
-          0,
-          input.adjustments
-            ?.indirectCostsPercentage ??
-            currentItem.adjustments
-              .indirectCostsPercentage,
-        ),
-        contingencyPercentage: Math.max(
-          0,
-          input.adjustments?.contingencyPercentage ??
-            currentItem.adjustments
-              .contingencyPercentage,
-        ),
-        profitPercentage: Math.max(
-          0,
-          input.adjustments?.profitPercentage ??
-            currentItem.adjustments.profitPercentage,
-        ),
-        taxPercentage: Math.max(
-          0,
-          input.adjustments?.taxPercentage ??
-            currentItem.adjustments.taxPercentage,
-        ),
+        indirectCostsPercentage:
+          ItemService.sanitizeNumber(
+            input.adjustments
+              ?.indirectCostsPercentage ??
+              currentItem.adjustments
+                .indirectCostsPercentage,
+          ),
+        contingencyPercentage:
+          ItemService.sanitizeNumber(
+            input.adjustments?.contingencyPercentage ??
+              currentItem.adjustments
+                .contingencyPercentage,
+          ),
+        profitPercentage:
+          ItemService.sanitizeNumber(
+            input.adjustments?.profitPercentage ??
+              currentItem.adjustments.profitPercentage,
+          ),
+        taxPercentage:
+          ItemService.sanitizeNumber(
+            input.adjustments?.taxPercentage ??
+              currentItem.adjustments.taxPercentage,
+          ),
       },
       unitPrice: updatedUnitPrice,
+      priceSource: updatedPriceSource,
       status:
         input.status ??
         ItemService.resolveStatus(updatedUnitPrice),
@@ -247,11 +249,46 @@ export class ItemService {
     return updatedItem;
   }
 
+  static setManualPrice(
+    itemId: string,
+    unitPrice: number,
+  ): BudgetItem | null {
+    const safeUnitPrice =
+      ItemService.sanitizeNumber(unitPrice);
+
+    return ItemService.update(itemId, {
+      unitPrice: safeUnitPrice,
+      priceSource: "manual",
+      status: ItemService.resolveStatus(safeUnitPrice),
+    });
+  }
+
+  static useApuPrice(
+    itemId: string,
+  ): BudgetItem | null {
+    const summary =
+      ItemService.calculateApuSummary(itemId);
+
+    if (!summary) {
+      return null;
+    }
+
+    return ItemService.update(itemId, {
+      unitPrice: summary.finalUnitPrice,
+      priceSource: "apu",
+      status: ItemService.resolveStatus(
+        summary.finalUnitPrice,
+      ),
+    });
+  }
+
   static moveToChapter(
     itemId: string,
     chapterId: string,
   ): BudgetItem | null {
-    return ItemService.update(itemId, { chapterId });
+    return ItemService.update(itemId, {
+      chapterId,
+    });
   }
 
   static delete(itemId: string): boolean {
@@ -270,10 +307,6 @@ export class ItemService {
       filteredItems,
     );
 
-    /*
-     * Al eliminar una partida también eliminamos
-     * todos los recursos pertenecientes a su APU.
-     */
     ResourceService.deleteByItem(itemId);
 
     return true;
@@ -369,19 +402,7 @@ export class ItemService {
   static recalculateUnitPrice(
     itemId: string,
   ): BudgetItem | null {
-    const summary =
-      ItemService.calculateApuSummary(itemId);
-
-    if (!summary) {
-      return null;
-    }
-
-    return ItemService.update(itemId, {
-      unitPrice: summary.finalUnitPrice,
-      status: ItemService.resolveStatus(
-        summary.finalUnitPrice,
-      ),
-    });
+    return ItemService.useApuPrice(itemId);
   }
 
   static calculateItemAmount(
@@ -399,6 +420,22 @@ export class ItemService {
   private static resolveStatus(
     unitPrice: number,
   ): BudgetItem["status"] {
-    return unitPrice > 0 ? "priced" : "unpriced";
+    return unitPrice > 0
+      ? "priced"
+      : "unpriced";
+  }
+
+  private static sanitizeNumber(
+    value: number | undefined,
+  ): number {
+    if (
+      value === undefined ||
+      !Number.isFinite(value) ||
+      value < 0
+    ) {
+      return 0;
+    }
+
+    return value;
   }
 }

@@ -6,7 +6,9 @@ import {
   Boxes,
   BriefcaseBusiness,
   Hammer,
+  Sparkles,
   Truck,
+  WandSparkles,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -20,6 +22,7 @@ import AnalysisSummaryCards from "@/components/analysis/AnalysisSummaryCards";
 import ApuAdjustmentsPanel from "@/components/analysis/ApuAdjustmentsPanel";
 import ApuSummarySidebar from "@/components/analysis/ApuSummarySidebar";
 import EditResourceModal from "@/components/analysis/EditResourceModal";
+import { NexusAiGeneratorModal } from "@/components/analysis/NexusAiGeneratorModal";
 import ResourceSection from "@/components/analysis/ResourceSection";
 import ResourceFormModal, {
   type ResourceCreationMode,
@@ -37,6 +40,7 @@ import type {
   ResourceType,
 } from "@/types/budget";
 import type { LibraryResource } from "@/types/library";
+import type { NexusAiApuProposal } from "@/types/nexus-ai";
 import type { Project } from "@/types/project";
 
 interface AnalysisWorkspaceProps {
@@ -83,23 +87,6 @@ const resourceSections: ResourceSectionData[] = [
       "Registra trabajos especializados contratados a terceros.",
     icon: Hammer,
   },
-];
-
-const resourceUnits = [
-  "ud",
-  "funda",
-  "m",
-  "m²",
-  "m³",
-  "kg",
-  "lb",
-  "ton",
-  "gal",
-  "litro",
-  "día",
-  "hora",
-  "jornal",
-  "global",
 ];
 
 export default function AnalysisWorkspace({
@@ -149,6 +136,12 @@ export default function AnalysisWorkspace({
 
   const [wastePercentage, setWastePercentage] =
     useState("0");
+
+  const [isAiModalOpen, setIsAiModalOpen] =
+    useState(false);
+
+  const [aiSuccessMessage, setAiSuccessMessage] =
+    useState<string | null>(null);
 
   function refreshAnalysis() {
     setResources(ApuService.getResources(itemId));
@@ -354,6 +347,75 @@ export default function AnalysisWorkspace({
     refreshAnalysis();
   }
 
+  function openAiGenerator() {
+    setAiSuccessMessage(null);
+    setIsAiModalOpen(true);
+  }
+
+  function closeAiGenerator() {
+    setIsAiModalOpen(false);
+  }
+
+  function applyAiProposal(
+    proposal: NexusAiApuProposal,
+  ) {
+    if (resources.length > 0) {
+      const confirmed = window.confirm(
+        "Esta partida ya tiene recursos. Si aplicas la propuesta de NEXUS AI, los recursos actuales serán reemplazados. ¿Deseas continuar?",
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      resources.forEach((resource) => {
+        ApuService.deleteResource(resource.id);
+      });
+    }
+
+    proposal.resources.forEach((resource) => {
+      ApuService.addResource({
+        itemId,
+        libraryResourceId:
+          resource.resourceId ?? undefined,
+        type: resource.resourceType,
+        code:
+          resource.resourceCode.trim() ||
+          undefined,
+        name: resource.name,
+        unit: resource.unit,
+
+        /*
+         * Se utiliza quantity y no finalQuantity porque
+         * ApuService aplica el porcentaje de desperdicio
+         * durante el cálculo del APU.
+         */
+        quantity: resource.quantity,
+        unitPrice: resource.unitPrice,
+        wastePercentage:
+          resource.resourceType === "material"
+            ? resource.wastePercentage
+            : 0,
+      });
+    });
+
+    ItemService.update(itemId, {
+      name: proposal.name,
+      description: proposal.description,
+      unit: proposal.unit,
+      quantity: proposal.quantity,
+      status: "priced",
+      priceSource: "apu",
+    });
+
+    refreshAnalysis();
+    setIsAiModalOpen(false);
+
+    setAiSuccessMessage(
+      `NEXUS AI agregó ${proposal.resources.length} recursos al análisis.`,
+    );
+  }
+
   if (!loaded) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-100">
@@ -497,6 +559,62 @@ export default function AnalysisWorkspace({
             analysisComplete={analysisComplete}
           />
 
+          {aiSuccessMessage && (
+            <div className="mt-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800">
+              <Sparkles className="mt-0.5 h-5 w-5 shrink-0" />
+
+              <div>
+                <p className="font-semibold">
+                  Propuesta aplicada correctamente
+                </p>
+
+                <p className="mt-1 text-sm">
+                  {aiSuccessMessage}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <section className="mt-6 overflow-hidden rounded-3xl bg-slate-950 text-white shadow-xl shadow-slate-300/40">
+            <div className="relative p-6 sm:p-8">
+              <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-blue-500/20 blur-3xl" />
+
+              <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-950/40">
+                    <WandSparkles className="h-6 w-6" />
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-300">
+                      NEXUS AI Engine
+                    </p>
+
+                    <h2 className="mt-2 text-xl font-bold sm:text-2xl">
+                      Generar este APU con inteligencia artificial
+                    </h2>
+
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+                      NEXUS analizará la partida, identificará
+                      los recursos necesarios y preparará una
+                      propuesta de materiales, mano de obra,
+                      equipos y subcontratos.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={openAiGenerator}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-3.5 font-semibold text-white transition hover:bg-blue-500"
+                >
+                  <WandSparkles className="h-5 w-5" />
+                  Generar con IA
+                </button>
+              </div>
+            </div>
+          </section>
+
           <AnalysisSummaryCards
             materialsTotal={materialsTotal}
             laborTotal={laborTotal}
@@ -602,6 +720,17 @@ export default function AnalysisWorkspace({
           onClose={closeEditResourceForm}
         />
       )}
+
+      <NexusAiGeneratorModal
+        isOpen={isAiModalOpen}
+        onClose={closeAiGenerator}
+        onApply={applyAiProposal}
+        initialDescription={
+          item.description?.trim() || item.name
+        }
+        initialUnit={item.unit}
+        initialQuantity={item.quantity}
+      />
     </main>
   );
 }

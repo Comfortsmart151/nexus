@@ -23,9 +23,11 @@ import type { Project } from "@/types/project";
 export default function DashboardView() {
   const [projects, setProjects] = useState<Project[]>([]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setProjects(ProjectService.findAll());
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const budgetMetrics = useMemo(() => {
     const projectIds = new Set(projects.map((project) => project.id));

@@ -4,6 +4,7 @@ import { CheckCircle2, Library, X } from "lucide-react";
 import type { FormEvent } from "react";
 
 import type { CostResource, ResourceType } from "@/types/budget";
+import { UNIT_OPTIONS } from "@/data/units";
 
 interface EditResourceModalProps {
   resource: CostResource;
@@ -23,22 +24,7 @@ interface EditResourceModalProps {
   onClose: () => void;
 }
 
-const resourceUnits = [
-  "ud",
-  "funda",
-  "m",
-  "m²",
-  "m³",
-  "kg",
-  "lb",
-  "ton",
-  "gal",
-  "litro",
-  "día",
-  "hora",
-  "jornal",
-  "global",
-];
+
 
 export default function EditResourceModal({
   resource,
@@ -130,9 +116,9 @@ export default function EditResourceModal({
               onChange={(event) => onUnitChange(event.target.value)}
               className="nexus-input mt-2"
             >
-              {resourceUnits.map((currentUnit) => (
-                <option key={currentUnit} value={currentUnit}>
-                  {currentUnit}
+              {UNIT_OPTIONS.map((currentUnit) => (
+                <option key={currentUnit.value} value={currentUnit.value}>
+                  {currentUnit.label}
                 </option>
               ))}
             </select>

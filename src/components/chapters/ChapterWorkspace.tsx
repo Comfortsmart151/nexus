@@ -36,6 +36,7 @@ export default function ChapterWorkspace({
     setChapters(ChapterService.findByProject(projectId));
   }
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const selectedProject = ProjectService.findById(projectId);
 
@@ -43,6 +44,7 @@ export default function ChapterWorkspace({
     setChapters(ChapterService.findByProject(projectId));
     setLoaded(true);
   }, [projectId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function createChapter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

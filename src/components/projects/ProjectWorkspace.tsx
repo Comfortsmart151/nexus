@@ -68,12 +68,14 @@ export default function ProjectWorkspace({
   const [project, setProject] = useState<Project | null>(null);
   const [loaded, setLoaded] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const selectedProject = ProjectService.findById(projectId);
 
     setProject(selectedProject);
     setLoaded(true);
   }, [projectId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!loaded) {
     return (

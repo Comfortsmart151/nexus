@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { librarySearchScore } from "@/services/librarySearch.service";
 
 import {
   ArrowLeft,
@@ -18,16 +19,19 @@ import {
   useState,
 } from "react";
 
-import LibraryFilters from "@/components/library/LibraryFilters";
+import LibraryFilters, { type AuditFilter } from "@/components/library/LibraryFilters";
 import LibraryHeader from "@/components/library/LibraryHeader";
 import LibraryImportModal from "@/components/library/LibraryImportModal";
 import LibrarySidebar from "@/components/library/LibrarySidebar";
 import LibraryStats from "@/components/library/LibraryStats";
 import LibraryTable from "@/components/library/LibraryTable";
+import LibraryNormalizationPanel from "@/components/library/LibraryNormalizationPanel";
 import PriceHistoryModal from "@/components/library/PriceHistoryModal";
 import ResourceModal from "@/components/library/ResourceModal";
 
 import { LibraryService } from "@/services/library.service";
+import { LibraryAuditService } from "@/services/libraryAudit.service";
+import { LibraryNormalizationService, type LibraryNormalizationProposal } from "@/services/libraryNormalization.service";
 
 import type { ResourceType } from "@/types/budget";
 import type {
@@ -76,7 +80,9 @@ export default function LibraryWorkspace() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [auditFilter, setAuditFilter] = useState<AuditFilter>("all");
   const [loaded, setLoaded] = useState(false);
+  const [normalizationOpen, setNormalizationOpen] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] =
@@ -109,8 +115,11 @@ export default function LibraryWorkspace() {
     setResources(LibraryService.findActive());
   }
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    LibraryService.seedInitialLibrary();
+    // Biblioteca Maestra NEXUS 2026.09.07: migración completa, idempotente
+    // y no destructiva para recursos locales creados por el usuario.
+    LibraryService.migrateNexusMasterLibrary();
     loadResources();
     setLoaded(true);
   }, []);
@@ -125,8 +134,25 @@ export default function LibraryWorkspace() {
     ).sort((a, b) => a.localeCompare(b, "es"));
   }, [resources]);
 
+  const auditResults = useMemo(() => LibraryAuditService.audit(resources), [resources]);
+  const normalizationProposals = useMemo(() => LibraryNormalizationService.proposals(resources), [resources]);
+
+  const auditCounts = useMemo(() => {
+    const counts: Record<AuditFilter, number> = {
+      all: resources.length, validated: 0, "needs-validation": 0, "possible-duplicate": 0,
+      "no-price": 0, "historical-price": 0, "review-unit": 0, "waste-in-name": 0, "review-classification": 0,
+    };
+    auditResults.forEach((audit) => {
+      audit.flags.forEach((flag) => {
+        if (flag in counts) {
+          counts[flag as AuditFilter] += 1;
+        }
+      });
+    });
+    return counts;
+  }, [resources, auditResults]);
+
   const filteredResources = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
 
     return resources
       .filter((resource) => {
@@ -148,40 +174,35 @@ export default function LibraryWorkspace() {
         return resource.category === categoryFilter;
       })
       .filter((resource) => {
-        if (!normalizedSearch) {
-          return true;
+        if (auditFilter !== "all" && !auditResults.get(resource.id)?.flags.includes(auditFilter)) {
+          return false;
         }
-
-        const searchableText = [
-          resource.code,
-          resource.name,
-          resource.unit,
-          resource.supplier ?? "",
-          resource.description ?? "",
-          resource.category ?? "",
-          resource.subcategory ?? "",
-          resource.brand ?? "",
-          resource.observations ?? "",
-          ...resource.tags,
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        return searchableText.includes(normalizedSearch);
+        return true;
       })
+      .map((resource) => ({
+        resource,
+        searchScore: searchTerm.trim() ? librarySearchScore(resource, searchTerm) : 1,
+      }))
+      .filter(({ searchScore }) => searchScore > 0)
       .sort((a, b) => {
-        if (a.isFavorite !== b.isFavorite) {
-          return a.isFavorite ? -1 : 1;
+        if (searchTerm.trim() && a.searchScore !== b.searchScore) {
+          return b.searchScore - a.searchScore;
         }
-
-        return a.name.localeCompare(b.name, "es");
-      });
+        if (a.resource.isFavorite !== b.resource.isFavorite) {
+          return a.resource.isFavorite ? -1 : 1;
+        }
+        return a.resource.name.localeCompare(b.resource.name, "es");
+      })
+      .map(({ resource }) => resource);
   }, [
     resources,
     activeFilter,
     searchTerm,
     categoryFilter,
+    auditFilter,
+    auditResults,
   ]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const totalFavorites = useMemo(
     () =>
@@ -328,6 +349,55 @@ export default function LibraryWorkspace() {
     loadResources();
   }
 
+
+  function validateData(resource: LibraryResource) {
+    const confirmed = window.confirm(`¿Confirmas que revisaste los datos y la clasificación de “${resource.name}”?`);
+    if (!confirmed) return;
+    LibraryService.update(resource.id, { dataReviewedAt: new Date().toISOString() });
+    loadResources();
+  }
+
+  function validatePrice(resource: LibraryResource) {
+    const confirmed = window.confirm(`¿Confirmas que RD$${resource.defaultUnitPrice.toLocaleString("es-DO", { minimumFractionDigits: 2 })} es un precio vigente para “${resource.name}”?`);
+    if (!confirmed) return;
+    LibraryService.update(resource.id, { priceValidatedAt: new Date().toISOString(), priceUpdatedAt: new Date().toISOString() });
+    loadResources();
+  }
+
+  function mergeResource(resource: LibraryResource) {
+    const audit = auditResults.get(resource.id);
+    if (!audit || audit.duplicateIds.length === 0) return;
+    const candidates = resources.filter((item) => audit.duplicateIds.includes(item.id));
+    const target = [resource, ...candidates]
+      .sort((a, b) => {
+        const aWaste = /desp|merma|\+\s*\d+\s*%/i.test(a.name) ? 1 : 0;
+        const bWaste = /desp|merma|\+\s*\d+\s*%/i.test(b.name) ? 1 : 0;
+        return aWaste - bWaste || a.name.length - b.name.length;
+      })[0];
+    const sources = [resource, ...candidates].filter((item) => item.id !== target.id);
+    const confirmed = window.confirm(
+      `NEXUS propone conservar “${target.name}” como recurso maestro y archivar ${sources.length} variante(s): ${sources.map((item) => item.name).join(", ")}.\n\nNo se borrarán; quedarán inactivas y su historial de precios se conservará en el recurso maestro. ¿Continuar?`,
+    );
+    if (!confirmed) return;
+    sources.forEach((source) => LibraryService.mergeInto(source.id, target.id));
+    loadResources();
+  }
+
+  function applyNormalizations(selected: LibraryNormalizationProposal[]) {
+    if (selected.length === 0) return;
+    const byResource = new Map<string, LibraryNormalizationProposal[]>();
+    selected.forEach((proposal) => byResource.set(proposal.resourceId, [...(byResource.get(proposal.resourceId) ?? []), proposal]));
+    const items = Array.from(byResource.entries()).map(([resourceId, proposals]) => ({
+      resourceId,
+      changes: Object.assign({}, ...proposals.map((proposal) => proposal.changes)),
+    }));
+    const confirmed = window.confirm(`CONFIRMACIÓN DE NORMALIZACIÓN\n\nSe aplicarán ${selected.length} propuestas sobre ${items.length} recursos.\n\nEsta acción modificará nombres, clasificación, fuente y/o desperdicio sugerido según la selección. No se borrarán precios, códigos ni historial.\n\n¿Confirmas que deseas aplicar exactamente esta selección?`);
+    if (!confirmed) return;
+    LibraryService.applyNormalizations(items);
+    loadResources();
+    setNormalizationOpen(false);
+  }
+
   function deleteResource(resource: LibraryResource) {
     const confirmed = window.confirm(
       `¿Deseas eliminar “${resource.name}” de la biblioteca?`,
@@ -398,6 +468,11 @@ export default function LibraryWorkspace() {
           />
 
           <section className="mt-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <div><p className="text-sm font-semibold text-slate-700">Normalización inteligente</p><p className="text-xs text-slate-500">{normalizationProposals.length} propuestas disponibles sin aplicar</p></div>
+              <button type="button" onClick={() => setNormalizationOpen((value) => !value)} className="rounded-xl bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">{normalizationOpen ? "Ocultar propuestas" : "Revisar propuestas"}</button>
+            </div>
+            {normalizationOpen && <LibraryNormalizationPanel proposals={normalizationProposals} onApply={applyNormalizations} onClose={() => setNormalizationOpen(false)} />}
             <LibraryFilters
               activeFilter={activeFilter}
               categoryFilter={categoryFilter}
@@ -406,10 +481,13 @@ export default function LibraryWorkspace() {
                 availableCategories
               }
               visibleCount={filteredResources.length}
+              auditFilter={auditFilter}
+              auditCounts={auditCounts}
               onSelectAll={selectAllResources}
               onSelectFavorites={selectFavorites}
               onCategoryChange={setCategoryFilter}
               onSearchChange={setSearchTerm}
+              onAuditFilterChange={setAuditFilter}
             />
 
             <LibraryTable
@@ -419,6 +497,10 @@ export default function LibraryWorkspace() {
               onEdit={openEditModal}
               onDelete={deleteResource}
               onHistory={setHistoryResource}
+              onMerge={mergeResource}
+              onValidateData={validateData}
+              onValidatePrice={validatePrice}
+              auditResults={auditResults}
             />
 
             {filteredResources.length === 0 && (

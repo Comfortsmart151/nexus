@@ -5,6 +5,7 @@ import { Search, Star } from "lucide-react";
 import type { ResourceType } from "@/types/budget";
 
 type LibraryFilter = "all" | "favorites" | ResourceType;
+export type AuditFilter = "all" | "validated" | "needs-validation" | "possible-duplicate" | "no-price" | "historical-price" | "review-unit" | "waste-in-name" | "review-classification";
 
 interface LibraryFiltersProps {
   activeFilter: LibraryFilter;
@@ -12,10 +13,13 @@ interface LibraryFiltersProps {
   searchTerm: string;
   availableCategories: string[];
   visibleCount: number;
+  auditFilter: AuditFilter;
+  auditCounts: Record<AuditFilter, number>;
   onSelectAll: () => void;
   onSelectFavorites: () => void;
   onCategoryChange: (value: string) => void;
   onSearchChange: (value: string) => void;
+  onAuditFilterChange: (value: AuditFilter) => void;
 }
 
 export default function LibraryFilters({
@@ -24,10 +28,13 @@ export default function LibraryFilters({
   searchTerm,
   availableCategories,
   visibleCount,
+  auditFilter,
+  auditCounts,
   onSelectAll,
   onSelectFavorites,
   onCategoryChange,
   onSearchChange,
+  onAuditFilterChange,
 }: LibraryFiltersProps) {
   return (
     <div className="border-b border-slate-200 p-6">
@@ -103,6 +110,20 @@ export default function LibraryFilters({
             />
           </div>
         </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-5">
+        {[
+          ["all", "Todos"], ["validated", "Validados"], ["needs-validation", "Por validar"],
+          ["possible-duplicate", "Posibles duplicados"], ["no-price", "Sin precio"],
+          ["historical-price", "Precio histórico"], ["review-unit", "Revisar unidad"],
+          ["waste-in-name", "Desperdicio en nombre"], ["review-classification", "Revisar clasificación"],
+        ].map(([value, label]) => (
+          <button key={value} type="button" onClick={() => onAuditFilterChange(value as AuditFilter)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${auditFilter === value ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-blue-300"}`}>
+            {label} <span className="ml-1 opacity-70">{auditCounts[value as AuditFilter] ?? 0}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

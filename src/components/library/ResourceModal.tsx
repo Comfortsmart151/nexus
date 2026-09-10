@@ -14,6 +14,7 @@ import {
 import type { ElementType, FormEvent } from "react";
 
 import type { ResourceType } from "@/types/budget";
+import { UNIT_OPTIONS } from "@/data/units";
 
 interface ResourceTypeOption {
   type: ResourceType;
@@ -54,25 +55,7 @@ const resourceTypes: ResourceTypeOption[] = [
   },
 ];
 
-const units = [
-  "ud",
-  "funda",
-  "lb",
-  "kg",
-  "qq",
-  "ton",
-  "pie",
-  "pie²",
-  "m",
-  "m²",
-  "m³",
-  "gal",
-  "litro",
-  "hora",
-  "día",
-  "jornal",
-  "global",
-];
+
 
 interface ResourceModalProps {
   editing: boolean;
@@ -264,9 +247,9 @@ export default function ResourceModal({
               }
               className="nexus-input mt-2"
             >
-              {units.map((currentUnit) => (
-                <option key={currentUnit} value={currentUnit}>
-                  {currentUnit}
+              {UNIT_OPTIONS.map((currentUnit) => (
+                <option key={currentUnit.value} value={currentUnit.value}>
+                  {currentUnit.label}
                 </option>
               ))}
             </select>

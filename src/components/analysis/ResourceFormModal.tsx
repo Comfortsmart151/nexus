@@ -11,6 +11,7 @@ import { type FormEvent, useMemo } from "react";
 
 import { LibraryService } from "@/services/library.service";
 import type { ResourceType } from "@/types/budget";
+import { UNIT_OPTIONS } from "@/data/units";
 import type { LibraryResource } from "@/types/library";
 
 export type ResourceCreationMode = "library" | "manual";
@@ -41,22 +42,7 @@ interface ResourceFormModalProps {
   onClose: () => void;
 }
 
-const resourceUnits = [
-  "ud",
-  "funda",
-  "m",
-  "m²",
-  "m³",
-  "kg",
-  "lb",
-  "ton",
-  "gal",
-  "litro",
-  "día",
-  "hora",
-  "jornal",
-  "global",
-];
+
 
 export default function ResourceFormModal({
   type,
@@ -315,9 +301,9 @@ function ManualResourceFields({
           }
           className="nexus-input mt-2"
         >
-          {resourceUnits.map((currentUnit) => (
-            <option key={currentUnit} value={currentUnit}>
-              {currentUnit}
+          {UNIT_OPTIONS.map((currentUnit) => (
+            <option key={currentUnit.value} value={currentUnit.value}>
+              {currentUnit.label}
             </option>
           ))}
         </select>

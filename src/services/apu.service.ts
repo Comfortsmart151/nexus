@@ -1,4 +1,5 @@
 import { ItemService } from "@/services/item.service";
+import { calculateApuDirectCost } from "@/services/apuCostEngine";
 import { ResourceService } from "@/services/resource.service";
 import type {
   ApuSummary,
@@ -10,9 +11,17 @@ import type {
 export interface ApuCalculation extends ApuSummary {
   itemId: string;
   itemQuantity: number;
+  analysisVolume: number;
   resourcesCount: number;
+  pricedResourcesCount: number;
+  missingPriceCount: number;
+  missingPriceResourceIds: string[];
+  referentialPriceCount: number;
+  invalidQuantityCount: number;
+  invalidQuantityResourceIds: string[];
   itemTotal: number;
   isCalculated: boolean;
+  isCostable: boolean;
 }
 
 export class ApuService {
@@ -93,85 +102,59 @@ export class ApuService {
     }
 
     const resources = ApuService.getResources(itemId);
+    const costResult = calculateApuDirectCost(
+      resources.map((resource) => ({
+        resourceId: resource.id,
+        type: resource.type,
+        quantityPerApu: resource.quantity,
+        unitPrice: resource.unitPrice,
+        wastePercentage: resource.wastePercentage,
+      })),
+    );
 
-    const materialsSubtotal =
-      ApuService.calculateTypeTotal(
-        itemId,
-        "material",
-      );
+    const materialsSubtotal = costResult.materials;
+    const laborSubtotal = costResult.labor;
+    const equipmentSubtotal = costResult.equipment;
+    const subcontractSubtotal = costResult.subcontract;
+    const directCost = costResult.directCost;
 
-    const laborSubtotal =
-      ApuService.calculateTypeTotal(
-        itemId,
-        "labor",
-      );
+    // Revenue MVP: el APU contiene solo costos directos.
+    // Los ajustes comerciales se aplican una sola vez en el presupuesto.
+    const indirectCostsAmount = 0;
+    const contingencyAmount = 0;
+    const profitAmount = 0;
+    const taxAmount = 0;
+    const analysisVolume =
+      Number.isFinite(item.analysisVolume) && item.analysisVolume > 0
+        ? item.analysisVolume
+        : 1;
 
-    const equipmentSubtotal =
-      ApuService.calculateTypeTotal(
-        itemId,
-        "equipment",
-      );
-
-    const subcontractSubtotal =
-      ApuService.calculateTypeTotal(
-        itemId,
-        "subcontract",
-      );
-
-    const directCost =
-      materialsSubtotal +
-      laborSubtotal +
-      equipmentSubtotal +
-      subcontractSubtotal;
-
-    const indirectCostsAmount =
-      ApuService.calculatePercentage(
-        directCost,
-        item.adjustments.indirectCostsPercentage,
-      );
-
-    const contingencyAmount =
-      ApuService.calculatePercentage(
-        directCost,
-        item.adjustments.contingencyPercentage,
-      );
-
-    const costBeforeProfit =
-      directCost +
-      indirectCostsAmount +
-      contingencyAmount;
-
-    const profitAmount =
-      ApuService.calculatePercentage(
-        costBeforeProfit,
-        item.adjustments.profitPercentage,
-      );
-
-    const unitPriceBeforeTax =
-      costBeforeProfit + profitAmount;
-
-    const taxAmount =
-      ApuService.calculatePercentage(
-        unitPriceBeforeTax,
-        item.adjustments.taxPercentage,
-      );
-
-    const finalUnitPrice =
-      unitPriceBeforeTax + taxAmount;
-
-    const itemTotal =
-      finalUnitPrice * item.quantity;
+    const unitPriceBeforeTax = directCost / analysisVolume;
+    const finalUnitPrice = unitPriceBeforeTax;
+    const itemTotal = finalUnitPrice * item.quantity;
+    const pricedResourcesCount = resources.filter(
+      (resource) => Number.isFinite(resource.unitPrice) && resource.unitPrice > 0,
+    ).length;
+    const referentialPriceCount = resources.filter(
+      (resource) => resource.priceStatus === "referential",
+    ).length;
 
     return {
       itemId,
       itemQuantity: item.quantity,
+      analysisVolume,
       resourcesCount: resources.length,
+      pricedResourcesCount,
+      missingPriceCount: costResult.missingPriceResourceIds.length,
+      missingPriceResourceIds: costResult.missingPriceResourceIds,
+      referentialPriceCount,
+      invalidQuantityCount: costResult.missingQuantityResourceIds.length,
+      invalidQuantityResourceIds: costResult.missingQuantityResourceIds,
 
       materialsSubtotal,
       laborSubtotal,
       equipmentSubtotal,
       subcontractSubtotal,
-
       directCost,
 
       indirectCostsAmount,
@@ -181,9 +164,9 @@ export class ApuService {
 
       unitPriceBeforeTax,
       finalUnitPrice,
-
       itemTotal,
       isCalculated: resources.length > 0,
+      isCostable: resources.length > 0 && costResult.isCostable,
     };
   }
 
@@ -202,9 +185,11 @@ export class ApuService {
     return ItemService.update(itemId, {
       unitPrice: calculation.finalUnitPrice,
       status:
-        calculation.resourcesCount > 0
+        calculation.isCostable
           ? "priced"
-          : "unpriced",
+          : calculation.resourcesCount > 0
+            ? "in-progress"
+            : "unpriced",
     });
   }
 
@@ -270,33 +255,4 @@ export class ApuService {
     return deleted;
   }
 
-  /**
-   * Actualiza los porcentajes del APU y recalcula su precio.
-   */
-  static updateAdjustments(
-    itemId: string,
-    adjustments: Partial<
-      BudgetItem["adjustments"]
-    >,
-  ): BudgetItem | null {
-    const updatedItem = ItemService.update(itemId, {
-      adjustments,
-    });
-
-    if (!updatedItem) {
-      return null;
-    }
-
-    return ApuService.recalculate(itemId);
-  }
-
-  private static calculatePercentage(
-    baseAmount: number,
-    percentage: number,
-  ): number {
-    const safeBase = Math.max(0, baseAmount);
-    const safePercentage = Math.max(0, percentage);
-
-    return safeBase * (safePercentage / 100);
-  }
 }

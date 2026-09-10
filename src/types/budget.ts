@@ -37,6 +37,12 @@ export interface LibraryResource {
   updatedAt: string;
 }
 
+export type ResourcePriceStatus =
+  | "confirmed"
+  | "referential"
+  | "manual"
+  | "missing";
+
 export interface CostResource {
   id: string;
   itemId: string;
@@ -47,6 +53,10 @@ export interface CostResource {
   unit: string;
   quantity: number;
   unitPrice: number;
+  priceStatus?: ResourcePriceStatus;
+  priceSource?: string;
+  priceSourceDate?: string;
+  priceConfidence?: string;
   wastePercentage: number;
   order: number;
   createdAt: string;
@@ -83,6 +93,8 @@ export interface BudgetItem {
   description?: string;
   unit: string;
   quantity: number;
+  /** Volumen base sobre el que se construye el APU. */
+  analysisVolume: number;
   status: BudgetItemStatus;
   adjustments: ApuAdjustments;
   unitPrice: number;

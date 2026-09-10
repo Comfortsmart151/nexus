@@ -11,26 +11,22 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import type { ApuAdjustments } from "@/types/budget";
-
 interface ApuSummarySidebarProps {
   materialsTotal: number;
   laborTotal: number;
   equipmentTotal: number;
   subcontractTotal: number;
   directCost: number;
-  indirectCostsAmount: number;
-  contingencyAmount: number;
-  profitAmount: number;
-  taxAmount: number;
-  unitPriceBeforeTax: number;
+  analysisVolume: number;
   unitPrice: number;
   itemTotal: number;
   quantity: number;
   unit: string;
-  adjustments: ApuAdjustments;
   analysisComplete: boolean;
   resourceCount: number;
+  missingPriceCount: number;
+  referentialPriceCount: number;
+  invalidQuantityCount: number;
 }
 
 interface CostCategory {
@@ -47,18 +43,16 @@ export default function ApuSummarySidebar({
   equipmentTotal,
   subcontractTotal,
   directCost,
-  indirectCostsAmount,
-  contingencyAmount,
-  profitAmount,
-  taxAmount,
-  unitPriceBeforeTax,
+  analysisVolume,
   unitPrice,
   itemTotal,
   quantity,
   unit,
-  adjustments,
   analysisComplete,
   resourceCount,
+  missingPriceCount,
+  referentialPriceCount,
+  invalidQuantityCount,
 }: ApuSummarySidebarProps) {
   const categories: CostCategory[] = [
     {
@@ -95,6 +89,9 @@ export default function ApuSummarySidebar({
     analysisComplete,
     directCost,
     resourceCount,
+    missingPriceCount,
+    referentialPriceCount,
+    invalidQuantityCount,
   });
 
   return (
@@ -123,6 +120,18 @@ export default function ApuSummarySidebar({
           <span className={`h-2 w-2 rounded-full ${status.dotClassName}`} />
           {status.label}
         </div>
+
+        {(missingPriceCount > 0 || invalidQuantityCount > 0) && (
+          <div className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-xs leading-5 text-amber-100">
+            {missingPriceCount > 0 && (
+              <p>{missingPriceCount} recurso(s) sin precio válido.</p>
+            )}
+            {invalidQuantityCount > 0 && (
+              <p>{invalidQuantityCount} recurso(s) con cantidad pendiente.</p>
+            )}
+            <p className="mt-1 text-amber-200/70">El costo mostrado es parcial hasta completar estos datos.</p>
+          </div>
+        )}
       </div>
 
       <div className="px-7 py-6">
@@ -143,7 +152,7 @@ export default function ApuSummarySidebar({
         <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
           <div className="flex items-center justify-between gap-4">
             <span className="text-sm font-medium text-slate-400">
-              Costo directo
+              Costo total del análisis
             </span>
             <span className="text-lg font-bold">
               {formatCurrency(directCost)}
@@ -153,41 +162,25 @@ export default function ApuSummarySidebar({
       </div>
 
       <div className="border-t border-slate-800 px-7 py-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-          Ajustes
+        <div className="flex items-center justify-between gap-4 text-sm">
+          <span className="text-slate-400">Volumen del análisis</span>
+          <span className="font-semibold">
+            {formatQuantity(analysisVolume)} {unit}
+          </span>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          {formatCurrency(directCost)} ÷ {formatQuantity(analysisVolume)} {unit} = {formatCurrency(unitPrice)} / {unit}
         </p>
 
-        <div className="mt-4 divide-y divide-slate-800">
-          <AdjustmentRow
-            label="Indirectos"
-            percentage={adjustments.indirectCostsPercentage}
-            value={indirectCostsAmount}
-          />
-          <AdjustmentRow
-            label="Contingencia"
-            percentage={adjustments.contingencyPercentage}
-            value={contingencyAmount}
-          />
-          <AdjustmentRow
-            label="Utilidad"
-            percentage={adjustments.profitPercentage}
-            value={profitAmount}
-          />
-          <AdjustmentRow
-            label="Impuestos"
-            percentage={adjustments.taxPercentage}
-            value={taxAmount}
-          />
-        </div>
+        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+          Criterio de cálculo
+        </p>
 
-        <div className="mt-5 flex items-center justify-between gap-4 text-sm">
-          <span className="text-slate-500">
-            Precio antes de impuestos
-          </span>
-          <span className="font-semibold text-slate-300">
-            {formatCurrency(unitPriceBeforeTax)}
-          </span>
-        </div>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
+          Este APU contiene únicamente costos directos. Los gastos
+          generales, contingencia, utilidad e impuestos se aplican
+          una sola vez en el presupuesto general.
+        </p>
       </div>
 
       <div className="border-t border-blue-400/20 bg-gradient-to-br from-blue-600 to-blue-700 px-7 py-7">
@@ -278,42 +271,34 @@ function CostCategoryRow({
   );
 }
 
-function AdjustmentRow({
-  label,
-  percentage,
-  value,
-}: {
-  label: string;
-  percentage: number;
-  value: number;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-3.5 text-sm first:pt-0 last:pb-0">
-      <div className="flex items-center gap-2">
-        <span className="text-slate-400">{label}</span>
-        <span className="rounded-md bg-slate-800 px-2 py-0.5 text-xs font-semibold text-slate-300">
-          {formatNumber(percentage)}%
-        </span>
-      </div>
-      <span className="font-semibold">
-        {formatCurrency(value)}
-      </span>
-    </div>
-  );
-}
-
 function getAnalysisStatus({
   analysisComplete,
   directCost,
   resourceCount,
+  missingPriceCount,
+  referentialPriceCount,
+  invalidQuantityCount,
 }: {
   analysisComplete: boolean;
   directCost: number;
   resourceCount: number;
+  missingPriceCount: number;
+  referentialPriceCount: number;
+  invalidQuantityCount: number;
 }) {
+  if (analysisComplete && directCost > 0 && referentialPriceCount > 0) {
+    return {
+      label: `APU costeado · ${referentialPriceCount} precio(s) por validar`,
+      icon: CircleAlert,
+      iconClassName: "bg-amber-400/15 text-amber-300",
+      badgeClassName: "bg-amber-400/10 text-amber-300",
+      dotClassName: "bg-amber-300",
+    };
+  }
+
   if (analysisComplete && directCost > 0) {
     return {
-      label: "APU completo",
+      label: "APU completo · precios validados",
       icon: CheckCircle2,
       iconClassName: "bg-emerald-500/15 text-emerald-300",
       badgeClassName: "bg-emerald-500/10 text-emerald-300",
@@ -322,8 +307,11 @@ function getAnalysisStatus({
   }
 
   if (resourceCount > 0) {
+    const pendingCount = missingPriceCount + invalidQuantityCount;
     return {
-      label: "Faltan costos por completar",
+      label: pendingCount > 0
+        ? `APU parcial · ${pendingCount} dato(s) pendiente(s)`
+        : "APU en revisión",
       icon: CircleAlert,
       iconClassName: "bg-amber-400/15 text-amber-300",
       badgeClassName: "bg-amber-400/10 text-amber-300",
@@ -357,12 +345,6 @@ function formatPercentage(value: number): string {
 function formatQuantity(value: number): string {
   return value.toLocaleString("es-DO", {
     maximumFractionDigits: 2,
-  });
-}
-
-function formatNumber(value: number): string {
-  return value.toLocaleString("es-DO", {
-    maximumFractionDigits: 4,
   });
 }
 

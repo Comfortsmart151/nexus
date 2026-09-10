@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Loader2,
   PackageSearch,
-  RotateCcw,
   Sparkles,
   WandSparkles,
   X,
@@ -156,6 +155,7 @@ export function NexusAiGeneratorModal({
     request.quantity,
   ]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -180,6 +180,7 @@ export function NexusAiGeneratorModal({
     initialUnit,
     initialQuantity,
   ]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!isOpen) {

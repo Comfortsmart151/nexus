@@ -19,7 +19,6 @@ import {
 
 import AnalysisHeader from "@/components/analysis/AnalysisHeader";
 import AnalysisSummaryCards from "@/components/analysis/AnalysisSummaryCards";
-import ApuAdjustmentsPanel from "@/components/analysis/ApuAdjustmentsPanel";
 import ApuSummarySidebar from "@/components/analysis/ApuSummarySidebar";
 import EditResourceModal from "@/components/analysis/EditResourceModal";
 import { NexusAiGeneratorModal } from "@/components/analysis/NexusAiGeneratorModal";
@@ -31,9 +30,9 @@ import NexusLogo from "@/components/ui/NexusLogo";
 import { ApuService } from "@/services/apu.service";
 import { ChapterService } from "@/services/chapter.service";
 import { ItemService } from "@/services/item.service";
+import { LibraryService } from "@/services/library.service";
 import { ProjectService } from "@/services/project.service";
 import type {
-  ApuAdjustments,
   BudgetChapter,
   BudgetItem,
   CostResource,
@@ -55,8 +54,6 @@ interface ResourceSectionData {
   description: string;
   icon: LucideIcon;
 }
-
-type AdjustmentField = keyof ApuAdjustments;
 
 const resourceSections: ResourceSectionData[] = [
   {
@@ -107,6 +104,7 @@ export default function AnalysisWorkspace({
     useState<CostResource[]>([]);
 
   const [loaded, setLoaded] = useState(false);
+  const [analysisVolumeInput, setAnalysisVolumeInput] = useState("1");
 
   const [activeResourceType, setActiveResourceType] =
     useState<ResourceType | null>(null);
@@ -145,16 +143,37 @@ export default function AnalysisWorkspace({
 
   function refreshAnalysis() {
     setResources(ApuService.getResources(itemId));
-    setItem(ItemService.findById(itemId));
+    const refreshedItem = ItemService.findById(itemId);
+    setItem(refreshedItem);
+    if (refreshedItem) {
+      setAnalysisVolumeInput(String(refreshedItem.analysisVolume));
+    }
   }
 
+  function saveAnalysisVolume() {
+    const volume = Number(analysisVolumeInput);
+
+    if (!Number.isFinite(volume) || volume <= 0) {
+      setAnalysisVolumeInput(String(item?.analysisVolume ?? 1));
+      return;
+    }
+
+    ItemService.update(itemId, { analysisVolume: volume });
+    ApuService.recalculate(itemId);
+    refreshAnalysis();
+  }
+
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setProject(ProjectService.findById(projectId));
     setChapter(ChapterService.findById(chapterId));
-    setItem(ItemService.findById(itemId));
+    const loadedItem = ItemService.findById(itemId);
+    setItem(loadedItem);
+    setAnalysisVolumeInput(String(loadedItem?.analysisVolume ?? 1));
     setResources(ApuService.getResources(itemId));
     setLoaded(true);
   }, [projectId, chapterId, itemId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function resetResourceForm(type?: ResourceType) {
     setLibrarySearch("");
@@ -205,6 +224,41 @@ export default function AnalysisWorkspace({
     resetResourceForm();
   }
 
+  function getLibraryPriceMetadata(libraryResource: LibraryResource) {
+    const latest = libraryResource.priceHistory?.[0];
+    const statusText = [
+      latest?.verificationStatus,
+      libraryResource.supplier,
+      libraryResource.source,
+      libraryResource.observations,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    const isReferential =
+      statusText.includes("referencial") ||
+      statusText.includes("por confirmar") ||
+      statusText.includes("reference");
+
+    return {
+      priceStatus: libraryResource.defaultUnitPrice <= 0
+        ? ("missing" as const)
+        : isReferential
+          ? ("referential" as const)
+          : ("confirmed" as const),
+      priceSource:
+        latest?.source ||
+        libraryResource.source ||
+        latest?.supplier ||
+        libraryResource.supplier,
+      priceSourceDate:
+        latest?.registeredAt ||
+        libraryResource.priceUpdatedAt,
+      priceConfidence: latest?.mappingConfidence,
+    };
+  }
+
   function selectLibraryResource(
     libraryResource: LibraryResource,
   ) {
@@ -215,6 +269,13 @@ export default function AnalysisWorkspace({
 
     setResourceUnitPrice(
       String(libraryResource.defaultUnitPrice),
+    );
+
+    // El desperdicio de biblioteca es una sugerencia: se precarga, pero el usuario puede cambiarlo por APU.
+    setWastePercentage(
+      libraryResource.type === "material" && libraryResource.suggestedWastePercent != null
+        ? String(libraryResource.suggestedWastePercent)
+        : "0",
     );
   }
 
@@ -251,6 +312,19 @@ export default function AnalysisWorkspace({
       return;
     }
 
+    const selectedLibraryResource =
+      resourceCreationMode === "library" && selectedLibraryResourceId
+        ? LibraryService.findById(selectedLibraryResourceId)
+        : null;
+    const priceMetadata = selectedLibraryResource
+      ? getLibraryPriceMetadata(selectedLibraryResource)
+      : {
+          priceStatus: unitPrice > 0 ? ("manual" as const) : ("missing" as const),
+          priceSource: "Entrada manual",
+          priceSourceDate: undefined,
+          priceConfidence: undefined,
+        };
+
     ApuService.addResource({
       itemId,
       libraryResourceId:
@@ -263,6 +337,7 @@ export default function AnalysisWorkspace({
       unit: resourceUnit,
       quantity,
       unitPrice,
+      ...priceMetadata,
       wastePercentage:
         activeResourceType === "material" &&
         Number.isFinite(waste) &&
@@ -329,24 +404,6 @@ export default function AnalysisWorkspace({
     refreshAnalysis();
   }
 
-  function updateAdjustment(
-    field: AdjustmentField,
-    value: string,
-  ) {
-    const parsedValue = Number(value);
-
-    const safeValue =
-      Number.isFinite(parsedValue) && parsedValue >= 0
-        ? parsedValue
-        : 0;
-
-    ApuService.updateAdjustments(itemId, {
-      [field]: safeValue,
-    });
-
-    refreshAnalysis();
-  }
-
   function openAiGenerator() {
     setAiSuccessMessage(null);
     setIsAiModalOpen(true);
@@ -392,6 +449,15 @@ export default function AnalysisWorkspace({
          */
         quantity: resource.quantity,
         unitPrice: resource.unitPrice,
+        priceStatus: resource.unitPrice <= 0
+          ? "missing"
+          : resource.requiresReview
+            ? "referential"
+            : "confirmed",
+        priceSource: resource.resourceId
+          ? "Biblioteca Maestra NEXUS"
+          : "Base técnica NEXUS",
+        priceConfidence: resource.confidenceLevel,
         wastePercentage:
           resource.resourceType === "material"
             ? resource.wastePercentage
@@ -404,10 +470,13 @@ export default function AnalysisWorkspace({
       description: proposal.description,
       unit: proposal.unit,
       quantity: proposal.quantity,
-      status: "priced",
+      // Los coeficientes de la propuesta técnica son por 1 unidad de partida.
+      analysisVolume: 1,
+      status: "in-progress",
       priceSource: "apu",
     });
 
+    ApuService.recalculate(itemId);
     refreshAnalysis();
     setIsAiModalOpen(false);
 
@@ -468,21 +537,6 @@ export default function AnalysisWorkspace({
   const directCost =
     calculation?.directCost ?? 0;
 
-  const indirectCostsAmount =
-    calculation?.indirectCostsAmount ?? 0;
-
-  const contingencyAmount =
-    calculation?.contingencyAmount ?? 0;
-
-  const profitAmount =
-    calculation?.profitAmount ?? 0;
-
-  const taxAmount =
-    calculation?.taxAmount ?? 0;
-
-  const unitPriceBeforeTax =
-    calculation?.unitPriceBeforeTax ?? 0;
-
   const unitPrice =
     calculation?.finalUnitPrice ?? 0;
 
@@ -490,7 +544,7 @@ export default function AnalysisWorkspace({
     calculation?.itemTotal ?? 0;
 
   const analysisComplete =
-    calculation?.isCalculated ?? false;
+    calculation?.isCostable ?? false;
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
@@ -615,6 +669,56 @@ export default function AnalysisWorkspace({
             </div>
           </section>
 
+          <section className="mt-6 rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
+                  Base del APU
+                </p>
+                <h2 className="mt-2 text-lg font-bold text-slate-950">
+                  Volumen del análisis
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm text-slate-500">
+                  Indica para qué volumen total corresponden las cantidades de recursos cargadas abajo. NEXUS dividirá el costo del análisis entre este volumen para obtener el precio unitario.
+                </p>
+              </div>
+
+              <div className="flex items-end gap-3">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Volumen
+                  </span>
+                  <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+                    <input
+                      type="number"
+                      min="0.000001"
+                      step="any"
+                      value={analysisVolumeInput}
+                      onChange={(event) => setAnalysisVolumeInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          saveAnalysisVolume();
+                        }
+                      }}
+                      className="w-36 px-4 py-3 font-semibold outline-none"
+                    />
+                    <span className="flex items-center border-l border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-600">
+                      {item.unit}
+                    </span>
+                  </div>
+                </label>
+                <button
+                  type="button"
+                  onClick={saveAnalysisVolume}
+                  className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-500"
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
+          </section>
+
           <AnalysisSummaryCards
             materialsTotal={materialsTotal}
             laborTotal={laborTotal}
@@ -644,29 +748,22 @@ export default function AnalysisWorkspace({
             </div>
 
             <aside className="h-fit space-y-5 xl:sticky xl:top-8">
-              <ApuAdjustmentsPanel
-                adjustments={item.adjustments}
-                onChange={updateAdjustment}
-              />
-
               <ApuSummarySidebar
                 materialsTotal={materialsTotal}
                 laborTotal={laborTotal}
                 equipmentTotal={equipmentTotal}
                 subcontractTotal={subcontractTotal}
                 directCost={directCost}
-                indirectCostsAmount={indirectCostsAmount}
-                contingencyAmount={contingencyAmount}
-                profitAmount={profitAmount}
-                taxAmount={taxAmount}
-                unitPriceBeforeTax={unitPriceBeforeTax}
+                analysisVolume={calculation?.analysisVolume ?? item.analysisVolume ?? 1}
                 unitPrice={unitPrice}
                 itemTotal={itemTotal}
                 quantity={item.quantity}
                 unit={item.unit}
-                adjustments={item.adjustments}
                 analysisComplete={analysisComplete}
                 resourceCount={resources.length}
+                missingPriceCount={calculation?.missingPriceCount ?? 0}
+                referentialPriceCount={calculation?.referentialPriceCount ?? 0}
+                invalidQuantityCount={calculation?.invalidQuantityCount ?? 0}
               />
             </aside>
           </section>

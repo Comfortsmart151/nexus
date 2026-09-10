@@ -13,7 +13,7 @@ const NEXUS_AI_KNOWLEDGE_STORAGE_KEY =
 const NEXUS_AI_KNOWLEDGE_VERSION_KEY =
   "nexus_ai_knowledge_version";
 
-const NEXUS_AI_KNOWLEDGE_VERSION = "1.0.0";
+const NEXUS_AI_KNOWLEDGE_VERSION = "1.4.0-dimensional-conversion";
 
 export interface NexusAiKnowledgeSearchOptions {
   category?: NexusAiConstructionCategory;
@@ -356,6 +356,45 @@ function calculateTokenCoverage(
   };
 }
 
+function extractMasonrySize(value: string): string | null {
+  const normalized = normalizeNexusAiKnowledgeText(value);
+  const match = normalized.match(/\b(4|6|8|10|12|16)\s*(?:pulgadas?|in)?\b/);
+  return match?.[1] ?? null;
+}
+
+function hasRuleSemanticConflict(
+  query: string,
+  rule: NexusAiKnowledgeRule,
+): boolean {
+  const normalizedQuery = normalizeNexusAiKnowledgeText(query);
+  const candidateText = normalizeNexusAiKnowledgeText(
+    [rule.name, rule.description ?? "", ...rule.aliases, ...rule.keywords].join(" "),
+  );
+
+  if (rule.category === "masonry") {
+    const requestedSize = extractMasonrySize(normalizedQuery);
+    const candidateSize = extractMasonrySize(candidateText);
+
+    if (requestedSize && candidateSize && requestedSize !== candidateSize) {
+      return true;
+    }
+
+    const asksReinforced = /\b(reforzado|refuerzo|estructural)\b/.test(normalizedQuery);
+    const candidateReinforced = /\b(reforzado|refuerzo|estructural)\b/.test(candidateText);
+
+    if (asksReinforced && !candidateReinforced) {
+      return true;
+    }
+
+    const asksNonReinforced = /\b(no reforzado|sin refuerzo)\b/.test(normalizedQuery);
+    if (asksNonReinforced && candidateReinforced) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function calculateRuleSearchScore(
   query: string,
   rule: NexusAiKnowledgeRule,
@@ -394,6 +433,15 @@ function calculateRuleSearchScore(
       rule,
       score: 0,
       matchReason: "Consulta vacía.",
+      matchedTerms: [],
+    };
+  }
+
+  if (hasRuleSemanticConflict(query, rule)) {
+    return {
+      rule,
+      score: 0,
+      matchReason: "La plantilla entra en conflicto con una especificación explícita de la partida.",
       matchedTerms: [],
     };
   }
@@ -649,24 +697,63 @@ export class NexusAiKnowledgeService {
   }
 
   private static ensureInitialized(): void {
-    const storedRules =
-      this.readStoredRules();
+    const storedRules = this.readStoredRules();
+    const storedVersion = isBrowser()
+      ? window.localStorage.getItem(NEXUS_AI_KNOWLEDGE_VERSION_KEY)
+      : null;
 
-    if (
-      storedRules &&
-      storedRules.length > 0
-    ) {
-      this.memoryRules =
-        cloneRules(storedRules);
+    if (storedRules && storedRules.length > 0) {
+      const builtInCodes = new Set(
+        INITIAL_NEXUS_AI_KNOWLEDGE_RULES.map((rule) =>
+          normalizeNexusAiKnowledgeText(rule.code),
+        ),
+      );
 
+      // Al cambiar la versión técnica, las reglas incorporadas por NEXUS son
+      // autoritativas y deben sustituir su copia antigua almacenada. Las reglas
+      // creadas por el usuario se conservan intactas. Esto evita que localStorage
+      // mantenga plantillas obsoletas después de actualizar el motor.
+      if (storedVersion !== NEXUS_AI_KNOWLEDGE_VERSION) {
+        const userRules = storedRules.filter(
+          (rule) =>
+            !builtInCodes.has(
+              normalizeNexusAiKnowledgeText(rule.code),
+            ),
+        );
+
+        this.writeRules([
+          ...cloneRules(INITIAL_NEXUS_AI_KNOWLEDGE_RULES),
+          ...userRules,
+        ]);
+        return;
+      }
+
+      const storedCodes = new Set(
+        storedRules.map((rule) =>
+          normalizeNexusAiKnowledgeText(rule.code),
+        ),
+      );
+
+      const missingBuiltInRules = INITIAL_NEXUS_AI_KNOWLEDGE_RULES.filter(
+        (rule) =>
+          !storedCodes.has(
+            normalizeNexusAiKnowledgeText(rule.code),
+          ),
+      );
+
+      if (missingBuiltInRules.length > 0) {
+        this.writeRules([
+          ...storedRules,
+          ...cloneRules(missingBuiltInRules),
+        ]);
+        return;
+      }
+
+      this.memoryRules = cloneRules(storedRules);
       return;
     }
 
-    this.writeRules(
-      cloneRules(
-        INITIAL_NEXUS_AI_KNOWLEDGE_RULES,
-      ),
-    );
+    this.writeRules(cloneRules(INITIAL_NEXUS_AI_KNOWLEDGE_RULES));
   }
 
   private static getMutableRules():

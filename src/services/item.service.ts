@@ -26,6 +26,7 @@ export interface CreateItemInput {
   description?: string;
   unit: string;
   quantity?: number;
+  analysisVolume?: number;
   adjustments?: Partial<ApuAdjustments>;
 }
 
@@ -36,6 +37,7 @@ export interface UpdateItemInput {
   description?: string;
   unit?: string;
   quantity?: number;
+  analysisVolume?: number;
   status?: BudgetItem["status"];
   adjustments?: Partial<ApuAdjustments>;
   unitPrice?: number;
@@ -50,6 +52,7 @@ export class ItemService {
     return items.map((item) => ({
       ...item,
       quantity: ItemService.sanitizeNumber(item.quantity),
+      analysisVolume: ItemService.sanitizePositiveNumber(item.analysisVolume, 1),
       unitPrice: ItemService.sanitizeNumber(item.unitPrice),
       priceSource: item.priceSource ?? "apu",
       adjustments: {
@@ -118,6 +121,10 @@ export class ItemService {
       unit: input.unit.trim(),
       quantity: ItemService.sanitizeNumber(
         input.quantity,
+      ),
+      analysisVolume: ItemService.sanitizePositiveNumber(
+        input.analysisVolume,
+        1,
       ),
       status: "unpriced",
       adjustments: {
@@ -209,6 +216,10 @@ export class ItemService {
         input.quantity !== undefined
           ? ItemService.sanitizeNumber(input.quantity)
           : currentItem.quantity,
+      analysisVolume:
+        input.analysisVolume !== undefined
+          ? ItemService.sanitizePositiveNumber(input.analysisVolume, 1)
+          : currentItem.analysisVolume,
       adjustments: {
         indirectCostsPercentage:
           ItemService.sanitizeNumber(
@@ -263,7 +274,7 @@ export class ItemService {
     });
   }
 
-  static useApuPrice(
+  static applyApuPrice(
     itemId: string,
   ): BudgetItem | null {
     const summary =
@@ -355,34 +366,18 @@ export class ItemService {
       equipmentSubtotal +
       subcontractSubtotal;
 
-    const indirectCostsAmount =
-      directCost *
-      (item.adjustments.indirectCostsPercentage /
-        100);
-
-    const contingencyAmount =
-      directCost *
-      (item.adjustments.contingencyPercentage /
-        100);
-
-    const costBeforeProfit =
-      directCost +
-      indirectCostsAmount +
-      contingencyAmount;
-
-    const profitAmount =
-      costBeforeProfit *
-      (item.adjustments.profitPercentage / 100);
-
-    const unitPriceBeforeTax =
-      costBeforeProfit + profitAmount;
-
-    const taxAmount =
-      unitPriceBeforeTax *
-      (item.adjustments.taxPercentage / 100);
-
-    const finalUnitPrice =
-      unitPriceBeforeTax + taxAmount;
+    // Revenue MVP v0.1: el precio proveniente del APU es el
+    // costo directo unitario. Los ajustes globales viven en el presupuesto.
+    const indirectCostsAmount = 0;
+    const contingencyAmount = 0;
+    const profitAmount = 0;
+    const taxAmount = 0;
+    const analysisVolume = ItemService.sanitizePositiveNumber(
+      item.analysisVolume,
+      1,
+    );
+    const unitPriceBeforeTax = directCost / analysisVolume;
+    const finalUnitPrice = unitPriceBeforeTax;
 
     return {
       materialsSubtotal,
@@ -402,7 +397,7 @@ export class ItemService {
   static recalculateUnitPrice(
     itemId: string,
   ): BudgetItem | null {
-    return ItemService.useApuPrice(itemId);
+    return ItemService.applyApuPrice(itemId);
   }
 
   static calculateItemAmount(
@@ -423,6 +418,17 @@ export class ItemService {
     return unitPrice > 0
       ? "priced"
       : "unpriced";
+  }
+
+  private static sanitizePositiveNumber(
+    value: number | undefined,
+    fallback: number,
+  ): number {
+    if (value === undefined || !Number.isFinite(value) || value <= 0) {
+      return fallback;
+    }
+
+    return value;
   }
 
   private static sanitizeNumber(

@@ -1,0 +1,79 @@
+# NEXUS — Cobertura referencial ControlObra — 2026-09-08
+
+- Recursos maestros: 4665
+- Recursos con precio al inicio de esta pasada: 118
+- Recursos con precio al final: 183
+- Nuevos recursos cubiertos en esta pasada: 65
+- Observaciones totales: 282
+- Criterio: usar precio ControlObra directo o comparable defendible y marcarlo POR CONFIRMAR; no presentar equivalencias como cotización formal.
+- Región preferente: Cibao Norte.
+
+## Nuevas referencias
+- MAT-31-000776 | Cal hidratada para estabilización de suelo | RD$27.9890/kg | MEDIUM | fuente comparable: Cal grande hidratada de 20 kg
+- MAT-04-000093 | Mortero premezclado Tipo N | RD$516.3600/funda | LOW | fuente comparable: Mortero pega bloques Antillana de 94 lb
+- MAT-04-000094 | Mortero premezclado Tipo S | RD$516.3600/funda | LOW | fuente comparable: Mortero pega bloques Antillana de 94 lb
+- MAT-04-000095 | Mortero premezclado Tipo M | RD$516.3600/funda | LOW | fuente comparable: Mortero pega bloques Antillana de 94 lb
+- MAT-04-001100 | Mortero premezclado mampostería saco 40 kg | RD$516.3600/funda | LOW | fuente comparable: Mortero pega bloques Antillana de 94 lb
+- MAT-04-001101 | Mortero premezclado mampostería saco 50 kg | RD$516.3600/funda | LOW | fuente comparable: Mortero pega bloques Antillana de 94 lb
+- MAT-04-001099 | Mortero premezclado mampostería saco 25 kg | RD$294.7400/funda | LOW | fuente comparable: Mortero cerámicas Pegatod de 50 lb
+- MAT-07-000193 | Waterstop PVC 6 in | RD$260.9800/m | MEDIUM | fuente comparable: Cinta water stop PVC de 9 in
+- MAT-07-001253 | Waterstop PVC ancho 20 cm | RD$260.9800/m | MEDIUM | fuente comparable: Cinta water stop PVC de 9 in
+- MAT-07-001254 | Waterstop PVC ancho 25 cm | RD$260.9800/m | MEDIUM | fuente comparable: Cinta water stop PVC de 9 in
+- MAT-32-000795 | Subbase granular triturada | RD$1,085.2800/m³ | MEDIUM | fuente comparable: Material triturado de base (en mina)
+- MAT-32-000796 | Base granular triturada graduada | RD$1,085.2800/m³ | HIGH | fuente comparable: Material triturado de base (en mina)
+- MAT-31-000794 | Piedra para gavión 100–200 mm | RD$1,085.2800/m³ | HIGH | fuente comparable: Piedra para muro de gaviones (en mina)
+- MAT-31-000774 | Piedra bruta para relleno | RD$1,085.2800/m³ | LOW | fuente comparable: Piedra para muro de gaviones (en mina)
+- MAT-32-000803 | Adoquín de hormigón 6 cm | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-000804 | Adoquín de hormigón 8 cm | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002625 | Adoquín hormigón 40 mm color gris | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002626 | Adoquín hormigón 40 mm color rojo | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002627 | Adoquín hormigón 40 mm color beige | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002628 | Adoquín hormigón 40 mm color negro | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002629 | Adoquín hormigón 50 mm color gris | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002630 | Adoquín hormigón 50 mm color rojo | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002631 | Adoquín hormigón 50 mm color beige | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002632 | Adoquín hormigón 50 mm color negro | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002633 | Adoquín hormigón 60 mm color gris | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002634 | Adoquín hormigón 60 mm color rojo | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002635 | Adoquín hormigón 60 mm color beige | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002636 | Adoquín hormigón 60 mm color negro | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002637 | Adoquín hormigón 70 mm color gris | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002638 | Adoquín hormigón 70 mm color rojo | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002639 | Adoquín hormigón 70 mm color beige | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002640 | Adoquín hormigón 70 mm color negro | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002641 | Adoquín hormigón 80 mm color gris | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002642 | Adoquín hormigón 80 mm color rojo | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002643 | Adoquín hormigón 80 mm color beige | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002644 | Adoquín hormigón 80 mm color negro | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002645 | Adoquín hormigón 100 mm color gris | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002646 | Adoquín hormigón 100 mm color rojo | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002647 | Adoquín hormigón 100 mm color beige | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-32-002648 | Adoquín hormigón 100 mm color negro | RD$1,256.6400/m² | LOW | fuente comparable: Adoquín gris Barahona
+- MAT-09-000285 | Cerámica esmaltada 20x20 cm | RD$1,016.7400/m² | MEDIUM | fuente comparable: Cerámica europea económica de 0.30x0.30m
+- MAT-09-000286 | Cerámica esmaltada 30x30 cm | RD$1,016.7400/m² | HIGH | fuente comparable: Cerámica europea económica de 0.30x0.30m
+- MAT-09-000287 | Cerámica esmaltada 45x45 cm | RD$1,428.0000/m² | MEDIUM | fuente comparable: Cerámica importada buena calidad de 0.40x0.40m
+- MAT-09-000288 | Cerámica esmaltada 60x60 cm | RD$1,713.6000/m² | LOW | fuente comparable: Cerámica europea buena calidad de 0.30x0.60m
+- MAT-22-001578 | Accesorio PVC presión Sch 40 codo 45° Ø1-1/2 in | RD$36.5600/ud | HIGH | fuente comparable: Codo de 1-1/2x45 en PVC presión
+- MAT-22-001577 | Accesorio PVC presión Sch 40 codo 90° Ø1-1/2 in | RD$41.1300/ud | HIGH | fuente comparable: Codo de 1-1/2x90 en PVC presión
+- MAT-22-001564 | Accesorio PVC presión Sch 40 codo 45° Ø1 in | RD$21.7100/ud | HIGH | fuente comparable: Codo de 1x45 en PVC presión
+- MAT-22-001563 | Accesorio PVC presión Sch 40 codo 90° Ø1 in | RD$21.7100/ud | HIGH | fuente comparable: Codo de 1x90 en PVC presión
+- MAT-22-001550 | Accesorio PVC presión Sch 40 codo 45° Ø1/2 in | RD$10.2800/ud | HIGH | fuente comparable: Codo de 1/2x45 en PVC presión
+- MAT-22-001549 | Accesorio PVC presión Sch 40 codo 90° Ø1/2 in | RD$8.0000/ud | HIGH | fuente comparable: Codo de 1/2x90 en PVC presión
+- MAT-22-000446 | Codo sanitario 45° PVC Ø2 in | RD$27.4200/ud | HIGH | fuente comparable: Codo de 2x45 en PVC drenaje
+- MAT-22-001585 | Accesorio PVC presión Sch 40 codo 45° Ø2 in | RD$52.5500/ud | HIGH | fuente comparable: Codo de 2x45 en PVC presión
+- MAT-22-000445 | Codo sanitario 90° PVC Ø2 in | RD$36.5600/ud | HIGH | fuente comparable: Codo de 2x90 en PVC drenaje
+- MAT-22-000428 | Codo 90° PVC presión Ø2 in | RD$60.5500/ud | HIGH | fuente comparable: Codo de 2x90 en PVC presión
+- MAT-22-001584 | Accesorio PVC presión Sch 40 codo 90° Ø2 in | RD$60.5500/ud | HIGH | fuente comparable: Codo de 2x90 en PVC presión
+- MAT-22-000451 | Codo sanitario 45° PVC Ø3 in | RD$63.9700/ud | HIGH | fuente comparable: Codo de 3x45 en PVC drenaje
+- EQ-43-000665 | Bomba industrial sumergible 1 HP | RD$29,702.4000/ud | MEDIUM | fuente comparable: Bomba sumergible de 1HP marca Myers
+- MAT-09-000278 | Alambre galvanizado suspensión plafón | RD$226.6793/kg | LOW | fuente comparable: Alambre galvanizado calibre 14
+- MO-01-000001 | Capataz general | RD$140.0288/hora | LOW | fuente comparable: Peón u obrero no calificado (pe)
+- MO-03-000013 | Armador de acero | RD$153.2025/hora | LOW | fuente comparable: Obrero calificado (tc)
+- MO-03-000138 | Capataz hormigón | RD$420.0863/hora | LOW | fuente comparable: Maestro de obra
+- MO-09-000041 | Instalador de cerámica y porcelanato | RD$153.2025/hora | LOW | fuente comparable: Obrero calificado (tc)
+- MO-09-000162 | Instalador cerámica | RD$153.2025/hora | LOW | fuente comparable: Obrero calificado (tc)
+- MO-22-000064 | Ayudante de plomería | RD$179.9762/hora | LOW | fuente comparable: Ayudante de obra (ay)
+- MO-31-000095 | Obrero de movimiento de tierra | RD$140.0288/hora | LOW | fuente comparable: Peón u obrero no calificado (pe)
+
+## Regla de uso
+Estos precios son útiles para presupuesto preliminar/demo. Los matches MEDIUM/LOW deben mostrarse como “Precio encontrado/referencial — por confirmar” y validarse antes de una propuesta contractual.

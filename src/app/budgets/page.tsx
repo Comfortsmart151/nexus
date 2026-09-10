@@ -26,9 +26,11 @@ interface ProjectBudgetRow {
 export default function BudgetsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setProjects(ProjectService.findAll());
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const rows = useMemo<ProjectBudgetRow[]>(() => {
     return projects.map((project) => {

@@ -17,6 +17,10 @@ export interface CreateResourceInput {
   unit: string;
   quantity: number;
   unitPrice: number;
+  priceStatus?: CostResource["priceStatus"];
+  priceSource?: string;
+  priceSourceDate?: string;
+  priceConfidence?: string;
   wastePercentage?: number;
   order?: number;
 }
@@ -28,6 +32,10 @@ export interface UpdateResourceInput {
   unit?: string;
   quantity?: number;
   unitPrice?: number;
+  priceStatus?: CostResource["priceStatus"];
+  priceSource?: string;
+  priceSourceDate?: string;
+  priceConfidence?: string;
   wastePercentage?: number;
   order?: number;
 }
@@ -113,6 +121,10 @@ export class ResourceService {
       unit: input.unit.trim(),
       quantity: Math.max(0, input.quantity),
       unitPrice: Math.max(0, input.unitPrice),
+      priceStatus: input.priceStatus ?? (input.unitPrice > 0 ? "manual" : "missing"),
+      priceSource: input.priceSource,
+      priceSourceDate: input.priceSourceDate,
+      priceConfidence: input.priceConfidence,
       wastePercentage: Math.max(
         0,
         input.wastePercentage ?? 0,
@@ -176,6 +188,22 @@ export class ResourceService {
         input.unitPrice !== undefined
           ? Math.max(0, input.unitPrice)
           : currentResource.unitPrice,
+      priceStatus:
+        input.priceStatus !== undefined
+          ? input.priceStatus
+          : currentResource.priceStatus,
+      priceSource:
+        input.priceSource !== undefined
+          ? input.priceSource
+          : currentResource.priceSource,
+      priceSourceDate:
+        input.priceSourceDate !== undefined
+          ? input.priceSourceDate
+          : currentResource.priceSourceDate,
+      priceConfidence:
+        input.priceConfidence !== undefined
+          ? input.priceConfidence
+          : currentResource.priceConfidence,
       wastePercentage:
         input.wastePercentage !== undefined
           ? Math.max(0, input.wastePercentage)

@@ -289,6 +289,43 @@ function normalizeCode(value: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
+function extractSpecificationNumbers(value: string): string[] {
+  const normalized = normalizeNexusAiKnowledgeText(value)
+    .replace(/(\d+)\s*[-/]\s*(\d+)/g, "$1/$2");
+
+  return Array.from(
+    new Set(
+      (normalized.match(/\b\d+(?:\.\d+)?(?:\/\d+)?\b/g) ?? [])
+        .filter((token) => Number(token) > 0),
+    ),
+  );
+}
+
+function hasConflictingSpecification(
+  rule: NexusAiResourceRule,
+  resource: LibraryResource,
+): boolean {
+  const ruleNumbers = extractSpecificationNumbers(
+    [rule.resourceName, ...rule.aliases].join(" "),
+  );
+
+  if (ruleNumbers.length === 0) {
+    return false;
+  }
+
+  const resourceNumbers = extractSpecificationNumbers(
+    [resource.name, resource.description ?? "", ...(resource.tags ?? [])].join(" "),
+  );
+
+  if (resourceNumbers.length === 0) {
+    return false;
+  }
+
+  return ruleNumbers.some(
+    (requiredNumber) => !resourceNumbers.includes(requiredNumber),
+  );
+}
+
 function getResourceSearchText(
   resource: LibraryResource,
 ): string {
@@ -392,6 +429,47 @@ function calculatePartialTokenCoverage(
   return matchedCount / sourceTokens.length;
 }
 
+function hasSemanticConflict(
+  rule: NexusAiResourceRule,
+  resource: LibraryResource,
+): boolean {
+  const ruleText = normalizeNexusAiKnowledgeText(
+    [rule.resourceName, ...rule.aliases].join(" "),
+  );
+  const resourceText = normalizeNexusAiKnowledgeText(
+    [resource.name, resource.description ?? "", ...(resource.tags ?? [])].join(" "),
+  );
+
+  // El agua de mezcla/obra nunca puede resolverse contra pinturas, esmaltes,
+  // selladores o revestimientos sólo porque compartan una unidad líquida.
+  if (
+    /\bagua\b/.test(ruleText) &&
+    /(pintura|esmalte|sellador|latex|acrilic|revestimiento)/.test(resourceText)
+  ) {
+    return true;
+  }
+
+  // Las mezcladoras de hormigón/mortero no pueden caer en griferías
+  // mezcladoras ni accesorios sanitarios por coincidencia léxica.
+  if (
+    /(mezcladora|ligadora|hormigonera)/.test(ruleText) &&
+    /(ducha|lavamanos|griferia|monomando|sanitari)/.test(resourceText)
+  ) {
+    return true;
+  }
+
+  // Un operador/hormigonero de preparación en obra no puede sustituirse
+  // por operador de bomba si la regla no solicita bombeo.
+  if (
+    /(hormigonero|operador de mezcladora|operador ligadora)/.test(ruleText) &&
+    /bomba/.test(resourceText)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function scoreResource(
   rule: NexusAiResourceRule,
   resource: LibraryResource,
@@ -400,6 +478,43 @@ function scoreResource(
 ): ResourceScoreResult {
   const reasons: string[] = [];
   let score = 0;
+
+  const normalizedRuleCode =
+    normalizeCode(rule.resourceCode ?? "");
+  const normalizedResourceCode =
+    normalizeCode(resource.code);
+
+  // A canonical resource ID is authoritative. This avoids fuzzy substitution
+  // when the knowledge rule already identifies the exact library resource.
+  if (
+    normalizedRuleCode &&
+    normalizedResourceCode &&
+    normalizedRuleCode === normalizedResourceCode
+  ) {
+    return {
+      resource,
+      score: 100,
+      reasons: ["Coincidencia exacta por ID canónico de Biblioteca Maestra."],
+    };
+  }
+
+  // Never substitute a conflicting size/calibre/diameter. A 6 in rule cannot
+  // silently become 8/10/12 in merely because other words are similar.
+  if (hasConflictingSpecification(rule, resource)) {
+    return {
+      resource,
+      score: 0,
+      reasons: ["La dimensión o especificación técnica entra en conflicto."],
+    };
+  }
+
+  if (hasSemanticConflict(rule, resource)) {
+    return {
+      resource,
+      score: 0,
+      reasons: ["La familia o función técnica del recurso entra en conflicto."],
+    };
+  }
 
   if (resource.type !== rule.resourceType) {
     if (requireSameType) {
@@ -420,10 +535,19 @@ function scoreResource(
     );
   }
 
-  const compatibleUnit = areUnitsCompatible(
+  const baseUnitCompatible = areUnitsCompatible(
     rule.unit,
     resource.unit,
   );
+
+  const ruleUnit = normalizeUnit(rule.unit);
+  const resourceUnit = normalizeUnit(resource.unit);
+  const timeUnits = new Set(["hora", "día", "jornal"]);
+  const compatibleUnit =
+    baseUnitCompatible ||
+    ((rule.resourceType === "labor" || rule.resourceType === "equipment") &&
+      timeUnits.has(ruleUnit) &&
+      timeUnits.has(resourceUnit));
 
   if (
     requireCompatibleUnit &&
@@ -443,24 +567,6 @@ function scoreResource(
     reasons.push("La unidad es compatible.");
   } else {
     score -= 8;
-  }
-
-  const normalizedRuleCode =
-    normalizeCode(rule.resourceCode ?? "");
-
-  const normalizedResourceCode =
-    normalizeCode(resource.code);
-
-  if (
-    normalizedRuleCode &&
-    normalizedResourceCode &&
-    normalizedRuleCode ===
-      normalizedResourceCode
-  ) {
-    score += 60;
-    reasons.push(
-      "Coincidencia exacta por código.",
-    );
   }
 
   const normalizedRuleName =
@@ -574,6 +680,22 @@ function scoreResource(
     reasons.push(
       "Coincidencia parcial de palabras.",
     );
+  }
+
+  // Un recurso sin ID canónico sólo puede resolverse por texto si comparte
+  // identidad técnica suficiente con la regla. Evita sustituciones absurdas
+  // como mortero -> esmalte simplemente por tener precio o metadatos parecidos.
+  if (
+    !rule.resourceCode &&
+    !exactAlias &&
+    normalizedRuleName !== normalizedResourceName &&
+    Math.max(tokenCoverage.coverage, partialTokenCoverage) < 0.35
+  ) {
+    return {
+      resource,
+      score: 0,
+      reasons: ["No existe identidad técnica suficiente para una sustitución difusa."],
+    };
   }
 
   const preferredCategory =
@@ -729,7 +851,7 @@ export class NexusAiMatcherService {
         DEFAULT_ALTERNATIVES_LIMIT,
       includeInactiveResources = false,
       requireSameType = true,
-      requireCompatibleUnit = false,
+      requireCompatibleUnit = true,
     } = options;
 
     const resources = getResources(
@@ -760,8 +882,28 @@ export class NexusAiMatcherService {
       alternativesLimit =
         DEFAULT_ALTERNATIVES_LIMIT,
       requireSameType = true,
-      requireCompatibleUnit = false,
+      requireCompatibleUnit = true,
     } = options;
+
+    // A resourceCode in a technical template is a canonical NEXUS identity,
+    // not merely a search hint. Prefer it deterministically before fuzzy matching.
+    if (rule.resourceCode) {
+      const canonical = resources.find(
+        (resource) =>
+          resource.code === rule.resourceCode &&
+          (!requireSameType || resource.type === rule.resourceType),
+      );
+
+      if (canonical) {
+        return {
+          rule,
+          resource: canonical,
+          matchScore: 100,
+          matchReason: `Vinculación canónica por código ${rule.resourceCode}.`,
+          alternatives: [],
+        };
+      }
+    }
 
     const scoredResources = resources
       .filter(
@@ -917,7 +1059,7 @@ export class NexusAiMatcherService {
           resource,
           options.requireSameType ?? true,
           options.requireCompatibleUnit ??
-            false,
+            true,
         ),
       )
       .filter(

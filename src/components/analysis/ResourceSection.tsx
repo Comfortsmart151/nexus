@@ -94,6 +94,32 @@ export default function ResourceSection({
                             {resource.code}
                           </p>
                         )}
+                        {resource.priceStatus && (
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
+                            <span
+                              className={
+                                resource.priceStatus === "confirmed"
+                                  ? "rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700"
+                                  : resource.priceStatus === "referential"
+                                    ? "rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-700"
+                                    : resource.priceStatus === "manual"
+                                      ? "rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600"
+                                      : "rounded-full bg-red-50 px-2 py-0.5 font-semibold text-red-700"
+                              }
+                            >
+                              {resource.priceStatus === "confirmed"
+                                ? "Precio confirmado"
+                                : resource.priceStatus === "referential"
+                                  ? "Precio referencial · por confirmar"
+                                  : resource.priceStatus === "manual"
+                                    ? "Precio manual"
+                                    : "Sin precio"}
+                            </span>
+                            {resource.priceSource && (
+                              <span className="text-slate-400">{resource.priceSource}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>

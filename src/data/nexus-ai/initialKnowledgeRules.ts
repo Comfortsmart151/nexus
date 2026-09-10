@@ -1,3 +1,4 @@
+import { MANUAL_COST_KNOWLEDGE_RULES } from "@/data/nexus-ai/manualCostKnowledgeRules";
 import type {
   NexusAiKnowledgeRule,
   NexusAiResourceRule,
@@ -47,7 +48,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-masonry-block-6-resource-001",
           resourceType: "material",
-          resourceCode: "MAT-BLO-006",
+          resourceCode: "MAT-04-001082",
           resourceName: "Bloque de hormigón de 6 pulgadas",
           aliases: [
             "block de 6",
@@ -67,25 +68,25 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-masonry-block-6-resource-002",
           resourceType: "material",
-          resourceCode: "MAT-CEM-GRI",
+          resourceCode: "MAT-03-000026",
           resourceName: "Cemento gris Portland",
           aliases: [
             "cemento gris",
             "cemento portland",
             "cemento",
           ],
-          unit: "funda",
-          coefficient: 0.12,
+          unit: "kg",
+          coefficient: 5.1,
           wastePercentage: 5,
           required: true,
           preferredCategory: "Cementos",
           notes:
-            "Consumo estimado para mortero de asiento.",
+            "Consumo técnico referencial: 0.12 funda de 42.5 kg ≈ 5.1 kg por m² de muro.",
         }),
         createResourceRule({
           id: "nexus-rule-masonry-block-6-resource-003",
           resourceType: "material",
-          resourceCode: "MAT-ARE-ITA",
+          resourceCode: "MAT-03-000029",
           resourceName: "Arena lavada",
           aliases: [
             "arena",
@@ -102,33 +103,17 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
             "Consumo estimado de arena para mortero de asiento.",
         }),
         createResourceRule({
-          id: "nexus-rule-masonry-block-6-resource-004",
-          resourceType: "material",
-          resourceCode: "MAT-AGU-001",
-          resourceName: "Agua para construcción",
-          aliases: [
-            "agua",
-            "agua de mezcla",
-            "agua para mortero",
-          ],
-          unit: "gal",
-          coefficient: 0.8,
-          wastePercentage: 3,
-          required: false,
-          preferredCategory: "Consumibles",
-        }),
-        createResourceRule({
           id: "nexus-rule-masonry-block-6-resource-005",
           resourceType: "labor",
-          resourceCode: "LAB-ALB-001",
+          resourceCode: "MO-04-000019",
           resourceName: "Albañil",
           aliases: [
             "albañil",
             "oficial albañil",
             "maestro albañil",
           ],
-          unit: "día",
-          coefficient: 0.1,
+          unit: "hora",
+          coefficient: 0.8,
           wastePercentage: 0,
           productivity: 10,
           crewSize: 1,
@@ -136,43 +121,26 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
           preferredCategory: "Construcción",
           preferredSubcategory: "Albañilería",
           notes:
-            "Rendimiento referencial de 10 m² por jornada.",
+            "Rendimiento referencial de 10 m² por jornada de 8 horas = 0.8 h/m².",
         }),
         createResourceRule({
           id: "nexus-rule-masonry-block-6-resource-006",
           resourceType: "labor",
-          resourceCode: "LAB-AYU-001",
+          resourceCode: "MO-04-000020",
           resourceName: "Ayudante de albañilería",
           aliases: [
             "ayudante",
             "peón",
             "ayudante de albañil",
           ],
-          unit: "día",
-          coefficient: 0.1,
+          unit: "hora",
+          coefficient: 0.8,
           wastePercentage: 0,
           productivity: 10,
           crewSize: 1,
           required: true,
           preferredCategory: "Construcción",
           preferredSubcategory: "Albañilería",
-        }),
-        createResourceRule({
-          id: "nexus-rule-masonry-block-6-resource-007",
-          resourceType: "equipment",
-          resourceCode: "EQU-HER-MEN",
-          resourceName: "Herramientas menores",
-          aliases: [
-            "herramientas menores",
-            "herramientas de albañilería",
-          ],
-          unit: "m²",
-          coefficient: 1,
-          wastePercentage: 0,
-          required: false,
-          preferredCategory: "Herramientas",
-          notes:
-            "Puede calcularse posteriormente como porcentaje de la mano de obra.",
         }),
       ],
       assumptions: [
@@ -242,15 +210,15 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-masonry-block-8-resource-002",
           resourceType: "material",
-          resourceCode: "MAT-CEM-GRI",
+          resourceCode: "MAT-03-000026",
           resourceName: "Cemento gris Portland",
           aliases: [
             "cemento gris",
             "cemento portland",
             "cemento",
           ],
-          unit: "funda",
-          coefficient: 0.14,
+          unit: "kg",
+          coefficient: 5.95,
           wastePercentage: 5,
           required: true,
           preferredCategory: "Cementos",
@@ -258,7 +226,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-masonry-block-8-resource-003",
           resourceType: "material",
-          resourceCode: "MAT-ARE-ITA",
+          resourceCode: "MAT-03-000029",
           resourceName: "Arena lavada",
           aliases: [
             "arena",
@@ -275,7 +243,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-masonry-block-8-resource-004",
           resourceType: "material",
-          resourceCode: "MAT-AGU-001",
+          resourceCode: "MAT-03-003488",
           resourceName: "Agua para construcción",
           aliases: ["agua", "agua de mezcla"],
           unit: "gal",
@@ -287,7 +255,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-masonry-block-8-resource-005",
           resourceType: "labor",
-          resourceCode: "LAB-ALB-001",
+          resourceCode: "MO-04-000019",
           resourceName: "Albañil",
           aliases: [
             "albañil",
@@ -306,7 +274,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-masonry-block-8-resource-006",
           resourceType: "labor",
-          resourceCode: "LAB-AYU-001",
+          resourceCode: "MO-04-000020",
           resourceName: "Ayudante de albañilería",
           aliases: [
             "ayudante",
@@ -379,7 +347,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-plaster-wall-resource-001",
           resourceType: "material",
-          resourceCode: "MAT-CEM-GRI",
+          resourceCode: "MAT-03-000026",
           resourceName: "Cemento gris Portland",
           aliases: ["cemento gris", "cemento", "cemento portland"],
           unit: "funda",
@@ -408,7 +376,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-plaster-wall-resource-003",
           resourceType: "material",
-          resourceCode: "MAT-AGU-001",
+          resourceCode: "MAT-03-003488",
           resourceName: "Agua para construcción",
           aliases: ["agua", "agua de mezcla"],
           unit: "gal",
@@ -420,7 +388,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-plaster-wall-resource-004",
           resourceType: "labor",
-          resourceCode: "LAB-ALB-001",
+          resourceCode: "MO-04-000019",
           resourceName: "Albañil",
           aliases: [
             "albañil",
@@ -439,7 +407,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-plaster-wall-resource-005",
           resourceType: "labor",
-          resourceCode: "LAB-AYU-001",
+          resourceCode: "MO-04-000020",
           resourceName: "Ayudante de albañilería",
           aliases: ["ayudante", "peón", "ayudante de albañil"],
           unit: "día",
@@ -669,11 +637,11 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-concrete-210-resource-001",
           resourceType: "material",
-          resourceCode: "MAT-CEM-GRI",
+          resourceCode: "MAT-03-000026",
           resourceName: "Cemento gris Portland",
           aliases: ["cemento", "cemento gris", "cemento portland"],
           unit: "funda",
-          coefficient: 8.5,
+          coefficient: 10,
           wastePercentage: 3,
           required: true,
           preferredCategory: "Cementos",
@@ -681,7 +649,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-concrete-210-resource-002",
           resourceType: "material",
-          resourceCode: "MAT-ARE-HOR",
+          resourceCode: "MAT-03-000029",
           resourceName: "Arena para hormigón",
           aliases: [
             "arena",
@@ -689,7 +657,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
             "arena para concreto",
           ],
           unit: "m³",
-          coefficient: 0.52,
+          coefficient: 0.45,
           wastePercentage: 5,
           required: true,
           preferredCategory: "Agregados",
@@ -698,7 +666,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-concrete-210-resource-003",
           resourceType: "material",
-          resourceCode: "MAT-GRA-019",
+          resourceCode: "MAT-03-000033",
           resourceName: "Grava de 3/4 de pulgada",
           aliases: [
             "grava",
@@ -707,7 +675,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
             "agregado grueso",
           ],
           unit: "m³",
-          coefficient: 0.78,
+          coefficient: 0.88,
           wastePercentage: 5,
           required: true,
           preferredCategory: "Agregados",
@@ -716,11 +684,11 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-concrete-210-resource-004",
           resourceType: "material",
-          resourceCode: "MAT-AGU-001",
+          resourceCode: "MAT-03-003488",
           resourceName: "Agua para construcción",
           aliases: ["agua", "agua de mezcla"],
           unit: "gal",
-          coefficient: 48,
+          coefficient: 60,
           wastePercentage: 3,
           required: true,
           preferredCategory: "Consumibles",
@@ -728,9 +696,10 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-concrete-210-resource-005",
           resourceType: "labor",
-          resourceCode: "LAB-OPE-HOR",
-          resourceName: "Operador de mezcladora",
+          resourceCode: "MO-03-000015",
+          resourceName: "Hormigonero",
           aliases: [
+            "hormigonero",
             "operador de mezcladora",
             "operador de hormigón",
           ],
@@ -746,7 +715,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-concrete-210-resource-006",
           resourceType: "labor",
-          resourceCode: "LAB-AYU-001",
+          resourceCode: "MO-04-000020",
           resourceName: "Ayudante de construcción",
           aliases: ["ayudante", "peón", "obrero"],
           unit: "día",
@@ -760,8 +729,8 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-concrete-210-resource-007",
           resourceType: "equipment",
-          resourceCode: "EQU-MEZ-CON",
-          resourceName: "Mezcladora de concreto",
+          resourceCode: "EQ-03-000012",
+          resourceName: "Mezcladora de hormigón tipo trompo 1 saco",
           aliases: [
             "mezcladora",
             "hormigonera",
@@ -778,8 +747,8 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-concrete-210-resource-008",
           resourceType: "equipment",
-          resourceCode: "EQU-VIB-CON",
-          resourceName: "Vibrador de concreto",
+          resourceCode: "EQ-03-000014",
+          resourceName: "Vibrador de inmersión para hormigón 1.5 in",
           aliases: [
             "vibrador",
             "vibrador de concreto",
@@ -1117,6 +1086,7 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
       createdAt: INITIAL_DATE,
       updatedAt: INITIAL_DATE,
     },
+    ...MANUAL_COST_KNOWLEDGE_RULES,
   ];
 
 export function findInitialNexusAiKnowledgeRuleById(

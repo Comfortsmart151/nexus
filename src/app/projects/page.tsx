@@ -18,9 +18,11 @@ import type { Project } from "@/types/project";
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setProjects(ProjectService.findAll());
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">

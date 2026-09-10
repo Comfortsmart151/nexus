@@ -5,6 +5,11 @@ export interface LibraryPriceHistoryEntry {
   price: number;
   supplier?: string;
   registeredAt: string;
+  source?: string;
+  sourceUrl?: string;
+  region?: string;
+  mappingConfidence?: string;
+  verificationStatus?: string;
 }
 
 export interface LibraryResource {
@@ -23,6 +28,12 @@ export interface LibraryResource {
   brand?: string;
   tags: string[];
   observations?: string;
+  source?: string;
+  suggestedWastePercent?: number;
+  /** Fecha en que la ficha técnica/clasificación fue revisada explícitamente. */
+  dataReviewedAt?: string;
+  /** Fecha en que el precio fue confirmado explícitamente como vigente. */
+  priceValidatedAt?: string;
 
   isFavorite: boolean;
   isActive: boolean;
@@ -49,6 +60,10 @@ export interface CreateLibraryResourceInput {
   brand?: string;
   tags?: string[];
   observations?: string;
+  source?: string;
+  suggestedWastePercent?: number;
+  dataReviewedAt?: string;
+  priceValidatedAt?: string;
 
   isFavorite?: boolean;
   priceUpdatedAt?: string;
@@ -68,6 +83,10 @@ export interface UpdateLibraryResourceInput {
   brand?: string;
   tags?: string[];
   observations?: string;
+  source?: string;
+  suggestedWastePercent?: number;
+  dataReviewedAt?: string;
+  priceValidatedAt?: string;
 
   isFavorite?: boolean;
   isActive?: boolean;

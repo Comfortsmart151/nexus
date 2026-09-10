@@ -3,6 +3,7 @@ import {
   useState,
 } from "react";
 import { Plus } from "lucide-react";
+import { UNIT_OPTIONS } from "@/data/units";
 
 interface CreateItemFormValues {
   name: string;
@@ -16,21 +17,7 @@ interface CreateItemFormProps {
   ) => void;
 }
 
-const units = [
-  "ud",
-  "m",
-  "m²",
-  "m³",
-  "kg",
-  "lb",
-  "ton",
-  "gal",
-  "litro",
-  "día",
-  "hora",
-  "jornal",
-  "global",
-];
+
 
 export default function CreateItemForm({
   onCreate,
@@ -97,12 +84,9 @@ export default function CreateItemForm({
           }
           className="nexus-input mt-2"
         >
-          {units.map((currentUnit) => (
-            <option
-              key={currentUnit}
-              value={currentUnit}
-            >
-              {currentUnit}
+          {UNIT_OPTIONS.map((currentUnit) => (
+            <option key={currentUnit.value} value={currentUnit.value}>
+              {currentUnit.label}
             </option>
           ))}
         </select>

@@ -964,6 +964,13 @@ function shouldIncludeMatch(
     return false;
   }
 
+  // Los recursos opcionales no deben convertir un APU costeable en uno incompleto.
+  // Si no existen en biblioteca o no tienen precio, se omiten y quedan como
+  // recomendación técnica en las advertencias, no como costo RD$0.00.
+  if (!match.resource || match.resource.defaultUnitPrice <= 0) {
+    return false;
+  }
+
   if (
     match.rule.resourceType === "equipment" &&
     request.includeTools === false
@@ -986,6 +993,111 @@ function shouldIncludeMatch(
   return true;
 }
 
+function libraryPriceRequiresReview(match: NexusAiResourceMatch): boolean {
+  const resource = match.resource;
+  if (!resource) return true;
+
+  const supplier = normalizeNexusAiKnowledgeText(resource.supplier ?? "");
+  const latestPrice = resource.priceHistory?.[resource.priceHistory.length - 1];
+  const verification = normalizeNexusAiKnowledgeText(latestPrice?.verificationStatus ?? "");
+  const confidence = normalizeNexusAiKnowledgeText(latestPrice?.mappingConfidence ?? "");
+
+  return (
+    supplier.includes("referencial") ||
+    supplier.includes("por confirmar") ||
+    verification.includes("referencial") ||
+    verification.includes("validar") ||
+    confidence === "low"
+  );
+}
+
+function normalizeApuUnit(unit: string): string {
+  const normalized = normalizeNexusAiKnowledgeText(unit);
+  if (["dia", "día", "jornal", "jornada"].includes(normalized)) return "día";
+  if (["hora", "hr", "hrs"].includes(normalized)) return "hora";
+  if (["kg", "kilo", "kilogramo", "kilogramos"].includes(normalized)) return "kg";
+  if (["lb", "lbs", "libra", "libras"].includes(normalized)) return "lb";
+  if (["gal", "galon", "galones"].includes(normalized)) return "gal";
+  if (["l", "lt", "lts", "litro", "litros"].includes(normalized)) return "litro";
+  if (["funda", "fundas", "saco", "sacos", "bolsa", "bolsas"].includes(normalized)) return "funda";
+  if (["ton", "tonelada", "toneladas"].includes(normalized)) return "ton";
+  return unit.trim();
+}
+
+function extractPackageWeightKg(name: string): number | null {
+  const normalized = normalizeNexusAiKnowledgeText(name);
+  const match = normalized.match(/(\d+(?:[.,]\d+)?)\s*kg\b/);
+  if (!match) return null;
+  const value = Number(match[1].replace(",", "."));
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function convertRuleQuantityToResourceUnit(
+  quantity: number,
+  ruleUnit: string,
+  resourceUnit: string,
+  resourceName: string,
+  resourceType: ResourceType,
+): { quantity: number; unit: string; converted: boolean } {
+  const from = normalizeApuUnit(ruleUnit);
+  const to = normalizeApuUnit(resourceUnit);
+
+  if (!from || !to || from === to) {
+    return { quantity, unit: resourceUnit || ruleUnit, converted: false };
+  }
+
+  // Mano de obra y alquileres/equipos: jornada técnica base de 8 horas.
+  if (
+    (resourceType === "labor" || resourceType === "equipment") &&
+    from === "día" &&
+    to === "hora"
+  ) {
+    return { quantity: quantity * 8, unit: "hora", converted: true };
+  }
+
+  if (
+    (resourceType === "labor" || resourceType === "equipment") &&
+    from === "hora" &&
+    to === "día"
+  ) {
+    return { quantity: quantity / 8, unit: "día", converted: true };
+  }
+
+  // Cementos y otros productos ensacados: toma el peso comercial del nombre
+  // canónico (ej. 42.5 kg) para convertir funda <-> kg sin confundir precio
+  // por funda con precio por kilogramo.
+  const packageKg = extractPackageWeightKg(resourceName);
+  if (from === "funda" && to === "kg" && packageKg) {
+    return { quantity: quantity * packageKg, unit: "kg", converted: true };
+  }
+  if (from === "kg" && to === "funda" && packageKg) {
+    return { quantity: quantity / packageKg, unit: "funda", converted: true };
+  }
+
+  if (from === "kg" && to === "lb") {
+    return { quantity: quantity * 2.2046226218, unit: "lb", converted: true };
+  }
+  if (from === "lb" && to === "kg") {
+    return { quantity: quantity / 2.2046226218, unit: "kg", converted: true };
+  }
+  if (from === "ton" && to === "kg") {
+    return { quantity: quantity * 1000, unit: "kg", converted: true };
+  }
+  if (from === "kg" && to === "ton") {
+    return { quantity: quantity / 1000, unit: "ton", converted: true };
+  }
+  if (from === "gal" && to === "litro") {
+    return { quantity: quantity * 3.785411784, unit: "litro", converted: true };
+  }
+  if (from === "litro" && to === "gal") {
+    return { quantity: quantity / 3.785411784, unit: "gal", converted: true };
+  }
+
+  // Si no existe conversión conocida, conserva la unidad de la regla para que
+  // el usuario vea la incompatibilidad en vez de multiplicar magnitudes falsas.
+  return { quantity, unit: ruleUnit, converted: false };
+}
+
 function createResourceSuggestion(
   match: NexusAiResourceMatch,
   request: NexusAiGenerationRequest,
@@ -993,15 +1105,45 @@ function createResourceSuggestion(
   const includeWaste =
     request.includeWaste !== false;
 
-  const quantities =
+  const ruleQuantities =
     calculateResourceQuantity(
       match.rule.coefficient,
       match.rule.wastePercentage,
       includeWaste,
     );
 
-  const unitPrice =
-    match.resource?.defaultUnitPrice ?? 0;
+  const unitPrice = match.resource?.defaultUnitPrice ?? 0;
+  const resourceUnit = match.resource?.unit ?? match.rule.unit;
+  const resourceName = match.resource?.name ?? match.rule.resourceName;
+
+  const baseConversion = convertRuleQuantityToResourceUnit(
+    ruleQuantities.baseQuantity,
+    match.rule.unit,
+    resourceUnit,
+    resourceName,
+    match.rule.resourceType,
+  );
+  const wasteConversion = convertRuleQuantityToResourceUnit(
+    ruleQuantities.wasteQuantity,
+    match.rule.unit,
+    resourceUnit,
+    resourceName,
+    match.rule.resourceType,
+  );
+  const finalConversion = convertRuleQuantityToResourceUnit(
+    ruleQuantities.finalQuantity,
+    match.rule.unit,
+    resourceUnit,
+    resourceName,
+    match.rule.resourceType,
+  );
+
+  const quantities = {
+    baseQuantity: round(baseConversion.quantity, 6),
+    wasteQuantity: round(wasteConversion.quantity, 6),
+    finalQuantity: round(finalConversion.quantity, 6),
+  };
+  const suggestionUnit = finalConversion.unit;
 
   const subtotal = round(
     quantities.finalQuantity * unitPrice,
@@ -1024,9 +1166,7 @@ function createResourceSuggestion(
     name:
       match.resource?.name ??
       match.rule.resourceName,
-    unit:
-      match.resource?.unit ??
-      match.rule.unit,
+    unit: suggestionUnit,
     quantity: quantities.baseQuantity,
     unitPrice: round(unitPrice, 2),
     wastePercentage: includeWaste
@@ -1050,8 +1190,51 @@ function createResourceSuggestion(
     requiresReview:
       !match.resource ||
       match.matchScore < 70 ||
-      unitPrice <= 0,
+      unitPrice <= 0 ||
+      libraryPriceRequiresReview(match),
   };
+}
+
+function consolidateResourceSuggestions(
+  resources: NexusAiApuResourceSuggestion[],
+): NexusAiApuResourceSuggestion[] {
+  const consolidated = new Map<string, NexusAiApuResourceSuggestion>();
+
+  resources.forEach((resource) => {
+    const identity = resource.resourceId || resource.resourceCode || normalizeNexusAiKnowledgeText(resource.name);
+    const key = [
+      resource.resourceType,
+      identity,
+      normalizeNexusAiKnowledgeText(resource.unit),
+      resource.wastePercentage,
+    ].join("|");
+
+    const current = consolidated.get(key);
+    if (!current) {
+      consolidated.set(key, { ...resource });
+      return;
+    }
+
+    const quantity = round(current.quantity + resource.quantity, 6);
+    const wasteQuantity = round(current.wasteQuantity + resource.wasteQuantity, 6);
+    const finalQuantity = round(current.finalQuantity + resource.finalQuantity, 6);
+    const subtotal = round(current.subtotal + resource.subtotal, 2);
+
+    consolidated.set(key, {
+      ...current,
+      quantity,
+      wasteQuantity,
+      finalQuantity,
+      subtotal,
+      confidence: Math.min(current.confidence, resource.confidence),
+      confidenceLevel: getNexusAiConfidenceLevel(Math.min(current.confidence, resource.confidence)),
+      requiresReview: current.requiresReview || resource.requiresReview,
+      notes: Array.from(new Set([current.notes, resource.notes].filter(Boolean))).join(" ") || undefined,
+      matchReason: Array.from(new Set([current.matchReason, resource.matchReason])).join(" "),
+    });
+  });
+
+  return Array.from(consolidated.values());
 }
 
 function calculateApuSummary(
@@ -1536,7 +1719,7 @@ export class NexusAiGeneratorService {
       options.includeOptionalResources !==
       false;
 
-    const resources =
+    let resources =
       matchResult.matches
         .filter((match) =>
           shouldIncludeMatch(
@@ -1551,6 +1734,44 @@ export class NexusAiGeneratorService {
             request,
           ),
         );
+
+    // Si el usuario solicita herramientas y la plantilla no trae un equipo
+    // específico, incorporamos una provisión auditable de herramienta menor
+    // equivalente al 3% de la mano de obra. No se presenta como cotización.
+    if (
+      request.includeTools !== false &&
+      !resources.some((resource) => resource.resourceType === "equipment")
+    ) {
+      const laborCost = resources
+        .filter((resource) => resource.resourceType === "labor")
+        .reduce((total, resource) => total + resource.subtotal, 0);
+
+      if (laborCost > 0) {
+        const toolsAllowance = round(laborCost * 0.03, 2);
+        resources.push({
+          id: createId("nexus-ai-resource"),
+          resourceId: null,
+          resourceCode: "NEXUS-EQ-HERR-MEN",
+          resourceType: "equipment",
+          name: "Herramientas menores (3% mano de obra)",
+          unit: "global",
+          quantity: 1,
+          unitPrice: toolsAllowance,
+          wastePercentage: 0,
+          wasteQuantity: 0,
+          finalQuantity: 1,
+          subtotal: toolsAllowance,
+          source: "rule-engine",
+          confidence: 0.9,
+          confidenceLevel: "high",
+          matchReason: "Provisión paramétrica de herramienta menor solicitada por el usuario.",
+          notes: "Allowance técnico = 3% del costo de mano de obra. Confirmar o sustituir por equipos específicos cuando la partida lo requiera.",
+          requiresReview: true,
+        });
+      }
+    }
+
+    resources = consolidateResourceSuggestions(resources);
 
     const summary =
       calculateApuSummary(resources);

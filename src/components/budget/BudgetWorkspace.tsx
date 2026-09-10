@@ -79,6 +79,7 @@ export default function BudgetWorkspace({
     [],
   );
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const currentProject =
       ProjectService.findById(
@@ -115,6 +116,7 @@ export default function BudgetWorkspace({
 
     setLoaded(true);
   }, [projectId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const chapterGroups =
     useMemo<
@@ -316,7 +318,7 @@ export default function BudgetWorkspace({
     itemId: string,
   ) {
     const updatedItem =
-      ItemService.useApuPrice(
+      ItemService.applyApuPrice(
         itemId,
       );
 

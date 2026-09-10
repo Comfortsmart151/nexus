@@ -52,6 +52,7 @@ export default function ItemWorkspace({
     );
   }
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setProject(
       ProjectService.findById(projectId),
@@ -67,6 +68,7 @@ export default function ItemWorkspace({
 
     setLoaded(true);
   }, [projectId, chapterId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function createItem(
     values: CreateItemValues,

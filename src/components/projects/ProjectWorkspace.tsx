@@ -8,16 +8,21 @@ import {
   Check,
   Circle,
   FileText,
+  FileUp,
+  FileSignature,
   ListTree,
   MapPin,
   ReceiptText,
   UserRound,
   WalletCards,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import NexusLogo from "@/components/ui/NexusLogo";
 import { ProjectService } from "@/services/project.service";
+import { ProjectDeletionService } from "@/services/projectDeletion.service";
 import type { Project } from "@/types/project";
 
 interface ProjectWorkspaceProps {
@@ -65,8 +70,12 @@ const stages = [
 export default function ProjectWorkspace({
   projectId,
 }: ProjectWorkspaceProps) {
+  const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -76,6 +85,21 @@ export default function ProjectWorkspace({
     setLoaded(true);
   }, [projectId]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  async function deleteCurrentProject() {
+    if (!project || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await ProjectDeletionService.deleteProject(project.id);
+      router.push("/projects");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setDeleteError(error instanceof Error ? error.message : "No fue posible eliminar el proyecto.");
+      setDeleting(false);
+    }
+  }
 
   if (!loaded) {
     return (
@@ -178,13 +202,20 @@ export default function ProjectWorkspace({
               </div>
             </div>
 
-            <Link
-              href={chaptersHref}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-500"
-            >
-              Crear capítulos
-              <ArrowRight className="h-5 w-5" />
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={() => setConfirmingDelete(true)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-5 py-3 font-semibold text-red-600 transition hover:bg-red-50">
+                <Trash2 className="h-5 w-5" /> Eliminar
+              </button>
+              <Link href={`/projects/${project.id}/plans`} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-blue-700 transition hover:bg-blue-50">
+                <FileUp className="h-5 w-5" /> Subir planos
+              </Link>
+              <Link href={`/projects/${project.id}/contracts`} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-50">
+                <FileSignature className="h-5 w-5" /> Contratos
+              </Link>
+              <Link href={chaptersHref} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-500">
+                Crear capítulos <ArrowRight className="h-5 w-5" />
+              </Link>
+            </div>
           </header>
 
           <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
@@ -306,6 +337,20 @@ export default function ProjectWorkspace({
           </section>
         </section>
       </div>
+      {confirmingDelete ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-7 shadow-2xl">
+            <p className="text-sm font-bold uppercase tracking-wider text-red-600">Eliminar proyecto</p>
+            <h2 className="mt-2 text-2xl font-bold">¿Eliminar “{project.name}”?</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600">Se eliminarán también capítulos, partidas, recursos/APU, presupuestos, planos, análisis, contratos y archivos asociados. La Biblioteca Maestra permanecerá intacta.</p>
+            {deleteError ? <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-medium text-red-700">{deleteError}</p> : null}
+            <div className="mt-6 flex justify-end gap-3">
+              <button type="button" disabled={deleting} onClick={() => { setConfirmingDelete(false); setDeleteError(null); }} className="rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Cancelar</button>
+              <button type="button" disabled={deleting} onClick={deleteCurrentProject} className="rounded-xl bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-500 disabled:opacity-60">{deleting ? "Eliminando..." : "Sí, eliminar proyecto"}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

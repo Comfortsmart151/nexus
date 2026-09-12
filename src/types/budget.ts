@@ -95,6 +95,10 @@ export interface BudgetItem {
   quantity: number;
   /** Volumen base sobre el que se construye el APU. */
   analysisVolume: number;
+  /** Desperdicio/holgura de cantidad definido durante la revisión del plano. */
+  planWastePercentage?: number;
+  /** Incremento manual sobre el precio unitario técnico del APU. */
+  manualPriceAdjustmentPercentage?: number;
   status: BudgetItemStatus;
   adjustments: ApuAdjustments;
   unitPrice: number;

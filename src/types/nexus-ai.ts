@@ -139,6 +139,7 @@ export interface NexusAiApuResourceSuggestion {
   resourceCode: string;
   resourceType: ResourceType;
   name: string;
+  catalogName?: string;
   unit: string;
   quantity: number;
   unitPrice: number;

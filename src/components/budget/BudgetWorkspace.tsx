@@ -14,6 +14,7 @@ import BudgetHeader from "@/components/budget/BudgetHeader";
 import BudgetSummaryCards from "@/components/budget/BudgetSummaryCards";
 import BudgetTable from "@/components/budget/BudgetTable";
 import BudgetTotals from "@/components/budget/BudgetTotals";
+import ApuValidationPanel from "@/components/budget/ApuValidationPanel";
 import NexusLogo from "@/components/ui/NexusLogo";
 
 import { ApuService } from "@/services/apu.service";
@@ -21,6 +22,7 @@ import { BudgetService } from "@/services/budget.service";
 import { ChapterService } from "@/services/chapter.service";
 import { ItemService } from "@/services/item.service";
 import { ProjectService } from "@/services/project.service";
+import { BudgetExportService } from "@/services/budgetExport.service";
 
 import type {
   BudgetItemRow,
@@ -71,6 +73,8 @@ export default function BudgetWorkspace({
 
   const [loaded, setLoaded] =
     useState(false);
+
+  const [exporting, setExporting] = useState(false);
 
   const [
     collapsedChapterIds,
@@ -468,6 +472,31 @@ export default function BudgetWorkspace({
 
           <BudgetHeader
             project={project}
+            exporting={exporting}
+            onClientPdf={async () => {
+              if (!totalsValues) return;
+              setExporting(true);
+              try { await BudgetExportService.exportClientPdf({ project, budget, chapters, items, values: totalsValues }); }
+              finally { setExporting(false); }
+            }}
+            onClientExcel={() => {
+              if (!totalsValues) return;
+              setExporting(true);
+              try { BudgetExportService.exportClientExcel({ project, budget, chapters, items, values: totalsValues }); }
+              finally { setExporting(false); }
+            }}
+            onTechnicalPdf={async () => {
+              if (!totalsValues) return;
+              setExporting(true);
+              try { await BudgetExportService.exportTechnicalPdf({ project, budget, chapters, items, values: totalsValues }); }
+              finally { setExporting(false); }
+            }}
+            onTechnicalExcel={() => {
+              if (!totalsValues) return;
+              setExporting(true);
+              try { BudgetExportService.exportTechnicalExcel({ project, budget, chapters, items, values: totalsValues }); }
+              finally { setExporting(false); }
+            }}
           />
 
           <BudgetSummaryCards
@@ -508,6 +537,8 @@ export default function BudgetWorkspace({
               handleUseApuPrice
             }
           />
+
+          {items.length > 0 && <ApuValidationPanel items={items} />}
 
           {chapterGroups.length >
             0 &&

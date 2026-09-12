@@ -1163,9 +1163,10 @@ function createResourceSuggestion(
       "",
     resourceType:
       match.rule.resourceType,
-    name:
-      match.resource?.name ??
-      match.rule.resourceName,
+    // La capa visible usa la nomenclatura de obra definida por NEXUS (RD).
+    // El producto técnico real permanece trazable mediante resourceId/resourceCode/catalogName.
+    name: match.rule.resourceName,
+    catalogName: match.resource?.name,
     unit: suggestionUnit,
     quantity: quantities.baseQuantity,
     unitPrice: round(unitPrice, 2),

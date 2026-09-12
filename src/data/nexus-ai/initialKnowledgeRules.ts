@@ -968,16 +968,21 @@ export const INITIAL_NEXUS_AI_KNOWLEDGE_RULES: NexusAiKnowledgeRule[] =
         createResourceRule({
           id: "nexus-rule-ceramic-floor-resource-003",
           resourceType: "material",
-          resourceCode: "MAT-DER-CER",
+          // Recurso canónico existente en la Biblioteca Maestra.
+          // En RD se conoce comúnmente como derretido/boquilla para juntas.
+          resourceCode: "MAT-09-000294",
           resourceName: "Derretido para juntas",
           aliases: [
             "derretido",
+            "boquilla cementicia para juntas 1–5 mm",
+            "derretido eurojunta",
+            "derretido keracolor",
             "boquilla",
             "lechada para juntas",
             "grout",
           ],
-          unit: "lb",
-          coefficient: 0.22,
+          unit: "funda",
+          coefficient: 0.083333,
           wastePercentage: 8,
           required: true,
           preferredCategory: "Pisos",

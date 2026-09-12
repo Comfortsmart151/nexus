@@ -27,6 +27,8 @@ export interface CreateItemInput {
   unit: string;
   quantity?: number;
   analysisVolume?: number;
+  planWastePercentage?: number;
+  manualPriceAdjustmentPercentage?: number;
   adjustments?: Partial<ApuAdjustments>;
 }
 
@@ -38,6 +40,8 @@ export interface UpdateItemInput {
   unit?: string;
   quantity?: number;
   analysisVolume?: number;
+  planWastePercentage?: number;
+  manualPriceAdjustmentPercentage?: number;
   status?: BudgetItem["status"];
   adjustments?: Partial<ApuAdjustments>;
   unitPrice?: number;
@@ -53,6 +57,8 @@ export class ItemService {
       ...item,
       quantity: ItemService.sanitizeNumber(item.quantity),
       analysisVolume: ItemService.sanitizePositiveNumber(item.analysisVolume, 1),
+      planWastePercentage: Math.max(0, ItemService.sanitizeNumber(item.planWastePercentage)),
+      manualPriceAdjustmentPercentage: Math.max(0, ItemService.sanitizeNumber(item.manualPriceAdjustmentPercentage)),
       unitPrice: ItemService.sanitizeNumber(item.unitPrice),
       priceSource: item.priceSource ?? "apu",
       adjustments: {
@@ -126,6 +132,8 @@ export class ItemService {
         input.analysisVolume,
         1,
       ),
+      planWastePercentage: Math.max(0, ItemService.sanitizeNumber(input.planWastePercentage)),
+      manualPriceAdjustmentPercentage: Math.max(0, ItemService.sanitizeNumber(input.manualPriceAdjustmentPercentage)),
       status: "unpriced",
       adjustments: {
         indirectCostsPercentage:
@@ -220,6 +228,10 @@ export class ItemService {
         input.analysisVolume !== undefined
           ? ItemService.sanitizePositiveNumber(input.analysisVolume, 1)
           : currentItem.analysisVolume,
+      planWastePercentage:
+        input.planWastePercentage !== undefined ? Math.max(0, ItemService.sanitizeNumber(input.planWastePercentage)) : currentItem.planWastePercentage,
+      manualPriceAdjustmentPercentage:
+        input.manualPriceAdjustmentPercentage !== undefined ? Math.max(0, ItemService.sanitizeNumber(input.manualPriceAdjustmentPercentage)) : currentItem.manualPriceAdjustmentPercentage,
       adjustments: {
         indirectCostsPercentage:
           ItemService.sanitizeNumber(

@@ -1,56 +1,5 @@
 import Link from "next/link";
-import {
-  FileSpreadsheet,
-  Layers3,
-  ReceiptText,
-} from "lucide-react";
-
+import { FileDown, FileSpreadsheet, Layers3, ReceiptText, ShieldCheck, UserRound } from "lucide-react";
 import type { Project } from "@/types/project";
-
-interface BudgetHeaderProps {
-  project: Project;
-}
-
-export default function BudgetHeader({
-  project,
-}: BudgetHeaderProps) {
-  return (
-    <header className="mt-5 flex flex-col gap-6 xl:mt-0 xl:flex-row xl:items-end xl:justify-between">
-      <div>
-        <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
-          <ReceiptText className="h-4 w-4" />
-          Presupuesto General
-        </div>
-
-        <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-          {project.name}
-        </h1>
-
-        <p className="mt-2 max-w-3xl text-slate-500">
-          Resumen consolidado de capítulos, partidas, precios
-          unitarios y montos del proyecto.
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          disabled
-          className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-400"
-          title="Disponible en una próxima fase"
-        >
-          <FileSpreadsheet className="h-4 w-4" />
-          Exportar
-        </button>
-
-        <Link
-          href={`/projects/${project.id}/chapters`}
-          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500"
-        >
-          <Layers3 className="h-4 w-4" />
-          Administrar capítulos
-        </Link>
-      </div>
-    </header>
-  );
-}
+interface BudgetHeaderProps { project:Project; onClientPdf:()=>void; onClientExcel:()=>void; onTechnicalPdf:()=>void; onTechnicalExcel:()=>void; exporting?:boolean; }
+export default function BudgetHeader({project,onClientPdf,onClientExcel,onTechnicalPdf,onTechnicalExcel,exporting=false}:BudgetHeaderProps){return <header className="mt-5 flex flex-col gap-6 xl:mt-0 xl:flex-row xl:items-end xl:justify-between"><div><div className="flex items-center gap-2 text-sm font-semibold text-blue-600"><ReceiptText className="h-4 w-4"/>Presupuesto General</div><h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{project.name}</h1><p className="mt-2 max-w-3xl text-slate-500">Exporta una versión comercial para el cliente o el expediente técnico completo para control interno.</p></div><div className="flex flex-col gap-2"><div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-slate-500"><UserRound className="h-3.5 w-3.5"/>Cliente</span><button type="button" onClick={onClientPdf} disabled={exporting} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-blue-300 hover:text-blue-700 disabled:opacity-50"><FileDown className="h-4 w-4"/>PDF</button><button type="button" onClick={onClientExcel} disabled={exporting} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-50"><FileSpreadsheet className="h-4 w-4"/>Excel</button></div><div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-slate-500"><ShieldCheck className="h-3.5 w-3.5"/>Técnico</span><button type="button" onClick={onTechnicalPdf} disabled={exporting} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"><FileDown className="h-4 w-4"/>PDF</button><button type="button" onClick={onTechnicalExcel} disabled={exporting} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"><FileSpreadsheet className="h-4 w-4"/>Excel</button><Link href={`/projects/${project.id}/chapters`} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"><Layers3 className="h-4 w-4"/>Capítulos</Link></div></div></header>}

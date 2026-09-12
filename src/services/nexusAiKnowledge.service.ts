@@ -13,7 +13,7 @@ const NEXUS_AI_KNOWLEDGE_STORAGE_KEY =
 const NEXUS_AI_KNOWLEDGE_VERSION_KEY =
   "nexus_ai_knowledge_version";
 
-const NEXUS_AI_KNOWLEDGE_VERSION = "1.4.0-dimensional-conversion";
+const NEXUS_AI_KNOWLEDGE_VERSION = "1.6.0-rd-nomenclature-layer";
 
 export interface NexusAiKnowledgeSearchOptions {
   category?: NexusAiConstructionCategory;

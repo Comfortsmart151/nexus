@@ -130,7 +130,8 @@ export class ApuService {
         : 1;
 
     const unitPriceBeforeTax = directCost / analysisVolume;
-    const finalUnitPrice = unitPriceBeforeTax;
+    const manualPriceAdjustmentPercentage = Math.max(0, item.manualPriceAdjustmentPercentage ?? 0);
+    const finalUnitPrice = unitPriceBeforeTax * (1 + manualPriceAdjustmentPercentage / 100);
     const itemTotal = finalUnitPrice * item.quantity;
     const pricedResourcesCount = resources.filter(
       (resource) => Number.isFinite(resource.unitPrice) && resource.unitPrice > 0,

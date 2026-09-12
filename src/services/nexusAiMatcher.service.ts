@@ -458,6 +458,16 @@ function hasSemanticConflict(
     return true;
   }
 
+  // Las crucetas/separadores de colocación de cerámica no pueden resolverse
+  // contra crucetas, piezas o accesorios de andamios. Comparten la palabra
+  // "cruceta", pero su función constructiva es completamente distinta.
+  if (
+    /(separador|cruceta|espaciador)/.test(ruleText) &&
+    /(andamio|tubular|scaffold)/.test(resourceText)
+  ) {
+    return true;
+  }
+
   // Un operador/hormigonero de preparación en obra no puede sustituirse
   // por operador de bomba si la regla no solicita bombeo.
   if (
@@ -771,6 +781,13 @@ function scoreResource(
     reasons.push(
       "La subcategoría es parcialmente compatible.",
     );
+  }
+
+  // Fuentes prioritarias aportadas por el usuario (Construcosto RD).
+  // La bonificación sólo opera después de validar tipo, unidad y semántica.
+  if ((resource.tags ?? []).includes("construcosto-primary")) {
+    score += 12;
+    reasons.push("Fuente prioritaria de precios y nomenclatura RD (Construcosto)." );
   }
 
   if (resource.isFavorite) {

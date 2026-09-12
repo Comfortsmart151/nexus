@@ -769,6 +769,12 @@ export function NexusAiGeneratorModal({
                                 {resource.name}
                               </div>
 
+                              {resource.catalogName && resource.catalogName !== resource.name ? (
+                                <div className="mt-1 text-xs text-slate-500">
+                                  Biblioteca: {resource.catalogName}
+                                </div>
+                              ) : null}
+
                               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                                 {resource.resourceCode ? (
                                   <span>

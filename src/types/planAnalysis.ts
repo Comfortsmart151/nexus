@@ -10,6 +10,29 @@ export interface PlanMeasurement {
   confidence: "high" | "medium" | "low";
 }
 
+export interface PlanDetectedSpace {
+  name: string;
+  count: number;
+}
+
+export interface PlanGeometrySummary {
+  sourcePage: number;
+  elevationPage?: number;
+  overallLength?: number;
+  overallWidth?: number;
+  clearWidth?: number;
+  clearHeight?: number;
+  horizontalSegments: number[];
+  grossArea?: number;
+  netFloorArea?: number;
+  exteriorPerimeter?: number;
+  internalPartitionLength?: number;
+  grossExteriorWallArea?: number;
+  spaces: PlanDetectedSpace[];
+  confidence: "high" | "medium" | "low";
+  notes: string[];
+}
+
 export interface PlanItemProposal {
   id: string;
   code: string;
@@ -35,6 +58,7 @@ export interface PlanAnalysis {
   level: string;
   pages: number;
   extractedText: string;
+  geometry?: PlanGeometrySummary;
   measurements: PlanMeasurement[];
   proposals: PlanItemProposal[];
   warnings: string[];

@@ -126,33 +126,6 @@ export default function ChapterWorkspace({
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
       <div className="flex min-h-screen">
-        <aside className="hidden w-72 flex-col border-r border-slate-200 bg-white p-6 lg:flex">
-          <NexusLogo size="sm" />
-
-          <Link
-            href={`/projects/${project.id}`}
-            className="mt-10 flex items-center gap-2 rounded-xl px-4 py-3 text-slate-600 transition hover:bg-slate-100 hover:text-blue-700"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            Volver al proyecto
-          </Link>
-
-          <div className="mt-6 rounded-2xl bg-slate-950 p-5 text-white">
-            <p className="text-xs uppercase tracking-wider text-slate-400">
-              Proyecto actual
-            </p>
-
-            <p className="mt-2 font-semibold">{project.name}</p>
-
-            <p className="mt-1 text-sm text-slate-400">
-              {project.code}
-            </p>
-          </div>
-
-          <div className="mt-auto text-sm text-slate-500">
-            Powered by Ingeniería González
-          </div>
-        </aside>
 
         <section className="flex-1 p-6 lg:p-10">
           <Link

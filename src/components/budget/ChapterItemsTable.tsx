@@ -385,7 +385,7 @@ export default function ChapterItemsTable({
                           href={
                             `/projects/${projectId}` +
                             `/chapters/${chapter.id}` +
-                            `/items/${item.id}/analysis`
+                            `/items/${item.id}`
                           }
                           className={`inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-bold transition ${
                             isCalculated

@@ -15,7 +15,6 @@ import BudgetSummaryCards from "@/components/budget/BudgetSummaryCards";
 import BudgetTable from "@/components/budget/BudgetTable";
 import BudgetTotals from "@/components/budget/BudgetTotals";
 import ApuValidationPanel from "@/components/budget/ApuValidationPanel";
-import NexusLogo from "@/components/ui/NexusLogo";
 
 import { ApuService } from "@/services/apu.service";
 import { BudgetService } from "@/services/budget.service";
@@ -412,54 +411,7 @@ export default function BudgetWorkspace({
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
       <div className="flex min-h-screen">
-        <aside className="hidden w-72 flex-col border-r border-slate-200 bg-white p-6 lg:flex">
-          <NexusLogo size="sm" />
 
-          <Link
-            href={`/projects/${project.id}`}
-            className="mt-10 flex items-center gap-2 rounded-xl px-4 py-3 text-slate-600 transition hover:bg-slate-100 hover:text-blue-700"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            Volver al proyecto
-          </Link>
-
-          <div className="mt-6 rounded-2xl bg-slate-950 p-5 text-white">
-            <p className="text-xs uppercase tracking-wider text-slate-400">
-              Proyecto
-            </p>
-
-            <p className="mt-2 font-semibold">
-              {project.name}
-            </p>
-
-            <p className="mt-1 text-sm text-slate-400">
-              {project.code}
-            </p>
-
-            <div className="my-4 h-px bg-slate-800" />
-
-            <p className="text-xs uppercase tracking-wider text-slate-400">
-              Presupuesto
-            </p>
-
-            <p className="mt-2 text-sm font-semibold">
-              Versión{" "}
-              {budget.version}
-            </p>
-
-            <div className="mt-3 flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-
-              <span className="text-sm font-medium">
-                En desarrollo
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-auto text-sm text-slate-500">
-            Powered by Ingeniería González
-          </div>
-        </aside>
 
         <section className="min-w-0 flex-1 p-5 sm:p-7 lg:p-10">
           <Link
@@ -538,7 +490,7 @@ export default function BudgetWorkspace({
             }
           />
 
-          {items.length > 0 && <ApuValidationPanel items={items} />}
+          {items.length > 0 && <ApuValidationPanel projectId={project.id} items={items} />}
 
           {chapterGroups.length >
             0 &&

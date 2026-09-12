@@ -22,7 +22,6 @@ import {
 import LibraryFilters, { type AuditFilter } from "@/components/library/LibraryFilters";
 import LibraryHeader from "@/components/library/LibraryHeader";
 import LibraryImportModal from "@/components/library/LibraryImportModal";
-import LibrarySidebar from "@/components/library/LibrarySidebar";
 import LibraryStats from "@/components/library/LibraryStats";
 import LibraryTable from "@/components/library/LibraryTable";
 import LibraryNormalizationPanel from "@/components/library/LibraryNormalizationPanel";
@@ -439,13 +438,6 @@ export default function LibraryWorkspace() {
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
       <div className="flex min-h-screen">
-        <LibrarySidebar
-          totalFavorites={totalFavorites}
-          favoritesSelected={
-            activeFilter === "favorites"
-          }
-          onSelectFavorites={selectFavorites}
-        />
 
         <section className="min-w-0 flex-1 p-6 lg:p-10">
           <Link
@@ -460,6 +452,16 @@ export default function LibraryWorkspace() {
             onCreateResource={openCreateModal}
             onImportResources={openImportModal}
           />
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={selectFavorites}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${activeFilter === "favorites" ? "bg-amber-50 text-amber-700" : "bg-white text-slate-600 hover:bg-slate-50"}`}
+            >
+              Favoritos ({totalFavorites})
+            </button>
+          </div>
 
           <LibraryStats
             activeFilter={activeFilter}

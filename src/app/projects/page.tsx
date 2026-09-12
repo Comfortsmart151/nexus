@@ -47,35 +47,6 @@ export default function ProjectsPage() {
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
       <div className="flex min-h-screen">
-        <aside className="hidden w-72 flex-col border-r border-slate-200 bg-white p-6 lg:flex">
-          <NexusLogo size="sm" />
-
-          <nav className="mt-10 space-y-2">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-600 transition hover:bg-slate-100"
-            >
-              <LayoutDashboard className="h-5 w-5" />
-              Dashboard
-            </Link>
-
-            <Link
-              href="/projects"
-              className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-3 font-semibold text-blue-700"
-            >
-              <FolderKanban className="h-5 w-5" />
-              Proyectos
-            </Link>
-
-            <Link
-              href="/library"
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-600 transition hover:bg-slate-100"
-            >
-              <Library className="h-5 w-5" />
-              Biblioteca
-            </Link>
-          </nav>
-        </aside>
 
         <section className="flex-1 p-6 lg:p-10">
           <Link

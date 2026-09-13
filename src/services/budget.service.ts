@@ -344,6 +344,8 @@ export class BudgetService {
   private static normalize(
     budget: Budget,
   ): Budget {
+    const settings = SettingsService.get();
+
     return {
       ...budget,
       version: Math.max(

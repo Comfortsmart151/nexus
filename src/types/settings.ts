@@ -1,0 +1,41 @@
+export type NexusAppTheme = "nexus-blue" | "executive-navy" | "engineering-slate" | "emerald" | "graphite" | "corporate-light" | "custom";
+export type BudgetTemplate = "corporate" | "executive" | "engineering" | "modern" | "classic";
+
+export interface CompanySettings {
+  commercialName: string;
+  legalName: string;
+  taxId: string;
+  phone: string;
+  email: string;
+  address: string;
+  responsibleName: string;
+  responsibleTitle: string;
+  defaultValidityDays: number;
+  defaultGeneralExpensesPercentage: number;
+  defaultContingencyPercentage: number;
+  defaultProfitPercentage: number;
+  defaultTaxPercentage: number;
+  defaultNotes: string;
+  documentPrefix: string;
+  currency: "DOP" | "USD";
+  logoDataUrl?: string;
+  darkLogoDataUrl?: string;
+  appTheme: NexusAppTheme;
+  appAppearance: "light" | "dark";
+  customPrimaryColor: string;
+  customAccentColor: string;
+  documentPrimaryColor: string;
+  documentSecondaryColor: string;
+  documentAccentColor: string;
+  budgetTemplate: BudgetTemplate;
+  documentShowCover: boolean;
+  documentShowLogo: boolean;
+  documentShowCompanyContact: boolean;
+  documentShowClientDetails: boolean;
+  documentShowUnitPrices: boolean;
+  documentShowQuantities: boolean;
+  documentShowTaxBreakdown: boolean;
+  documentShowChapterSubtotals: boolean;
+  documentShowAcceptance: boolean;
+  updatedAt: string;
+}

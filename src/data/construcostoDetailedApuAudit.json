@@ -1,0 +1,25 @@
+{
+  "analysesPerRegion": {
+    "santiago-cibao": 440,
+    "santo-domingo": 440,
+    "punta-cana": 440
+  },
+  "combinedAnalyses": 440,
+  "resourceLines": 8547,
+  "mappedLines": 4329,
+  "unmappedLines": 4218,
+  "mappingMethods": {
+    "unmapped": 4218,
+    "regional-price-name": 3549,
+    "fuzzy": 150,
+    "exact-name": 93,
+    "exact-name-unit": 537
+  },
+  "typeCounts": {
+    "material": 6168,
+    "labor": 2244,
+    "equipment": 135
+  },
+  "analysesResourceTotalMismatchOver1": 6,
+  "analysesUnitCostMismatchOver001": 6
+}

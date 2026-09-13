@@ -116,7 +116,13 @@ export default function ResourceSection({
                                     : "Sin precio"}
                             </span>
                             {resource.priceSource && (
-                              <span className="text-slate-400">{resource.priceSource}</span>
+                              <span className="text-slate-400">Fuente: {resource.priceSource}</span>
+                            )}
+                            {resource.priceSourceDate && (
+                              <span className="text-slate-400">Fecha: {resource.priceSourceDate}</span>
+                            )}
+                            {resource.priceConfidence && (
+                              <span className="text-slate-400">Confianza: {resource.priceConfidence}</span>
                             )}
                           </div>
                         )}

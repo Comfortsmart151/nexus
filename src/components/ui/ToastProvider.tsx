@@ -1,0 +1,7 @@
+"use client";
+import { CheckCircle2, CircleAlert, Info, X } from "lucide-react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
+type Tone="success"|"error"|"info"; type Toast={id:number;title:string;detail?:string;tone:Tone};
+const C=createContext<{notify:(title:string,detail?:string,tone?:Tone)=>void}>({notify:()=>{}});
+export function ToastProvider({children}:{children:React.ReactNode}){const [rows,setRows]=useState<Toast[]>([]);const notify=useCallback((title:string,detail?:string,tone:Tone="success")=>{const id=Date.now()+Math.random();setRows(r=>[...r,{id,title,detail,tone}]);window.setTimeout(()=>setRows(r=>r.filter(x=>x.id!==id)),3500)},[]);const value=useMemo(()=>({notify}),[notify]);return <C.Provider value={value}>{children}<div className="fixed right-5 top-5 z-[100] flex w-[min(92vw,390px)] flex-col gap-3">{rows.map(t=>{const Icon=t.tone==="success"?CheckCircle2:t.tone==="error"?CircleAlert:Info;return <div key={t.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl"><div className="flex gap-3"><Icon className={`mt-0.5 h-5 w-5 ${t.tone==="success"?"text-emerald-600":t.tone==="error"?"text-red-600":"text-blue-600"}`}/><div className="min-w-0 flex-1"><p className="font-semibold text-slate-900">{t.title}</p>{t.detail&&<p className="mt-1 text-sm text-slate-500">{t.detail}</p>}</div><button onClick={()=>setRows(r=>r.filter(x=>x.id!==t.id))}><X className="h-4 w-4 text-slate-400"/></button></div></div>})}</div></C.Provider>}
+export const useToast=()=>useContext(C);

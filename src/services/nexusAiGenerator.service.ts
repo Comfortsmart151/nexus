@@ -1,3 +1,5 @@
+import { ProjectService } from "@/services/project.service";
+import { RegionalPricingService } from "@/services/regionalPricing.service";
 import {
   NexusAiKnowledgeService,
   normalizeNexusAiKnowledgeText,
@@ -1112,7 +1114,8 @@ function createResourceSuggestion(
       includeWaste,
     );
 
-  const unitPrice = match.resource?.defaultUnitPrice ?? 0;
+  const projectRegion = request.projectId ? ProjectService.findById(request.projectId)?.priceRegion : undefined;
+  const unitPrice = match.resource ? RegionalPricingService.resolveResourcePrice(match.resource, projectRegion) : 0;
   const resourceUnit = match.resource?.unit ?? match.rule.unit;
   const resourceName = match.resource?.name ?? match.rule.resourceName;
 
@@ -1601,6 +1604,114 @@ export class NexusAiGeneratorService {
     const minimumKnowledgeScore =
       options.minimumKnowledgeScore ??
       MINIMUM_KNOWLEDGE_SCORE;
+
+    // Antes de recurrir a reglas genéricas, consulta los análisis oficiales de
+    // Construcosto. Esto evita que términos dominicanos como "charrancha"
+    // terminen asociados a una plantilla constructiva no relacionada.
+    const construcostoMatch = RegionalPricingService.findBestCostAnalysis(request.description);
+    if (construcostoMatch) {
+      const projectRegion = request.projectId
+        ? ProjectService.findById(request.projectId)?.priceRegion ?? "santiago-cibao"
+        : "santiago-cibao";
+      const analysis = construcostoMatch.analysis;
+      const regional = analysis.prices?.[projectRegion];
+      const unitPrice = regional?.price ?? 0;
+      const quantity = request.quantity && request.quantity > 0 ? request.quantity : analysis.quantity || 1;
+      const unit = request.unit?.trim() || analysis.unit;
+      const normalized = normalizeNexusAiKnowledgeText(request.description);
+      const category: NexusAiConstructionCategory = analysis.group.includes("100") ? "preliminaries" : "general";
+      const parsedDescription: NexusAiParsedDescription = {
+        originalDescription: request.description.trim(), normalizedDescription: normalized, detectedCategory: category,
+        detectedUnit: unit, detectedQuantity: quantity, keywords: tokenizeNexusAiKnowledgeText(request.description),
+        measurements: [], attributes: [{ key: "construcostoCode", label: "Código Construcosto", value: analysis.code, sourceText: analysis.name }],
+        confidence: 0.99, confidenceLevel: "high",
+      };
+
+      const detailed = RegionalPricingService.getDetailedApu(analysis.code, analysis.name, projectRegion);
+      const detailedRelativeDifference = detailed && detailed.listedUnitPrice > 0
+        ? Math.abs(detailed.unitCostDifference) / detailed.listedUnitPrice
+        : 1;
+      const detailedIsConsistent = Boolean(detailed && detailed.resources.length > 0 && detailedRelativeDifference <= 0.02);
+      if (detailed && detailedIsConsistent) {
+        const resources: NexusAiApuResourceSuggestion[] = detailed.resources.map((resource, index) => {
+          const normalizedQuantity = Number(resource.normalizedQuantity) || 0;
+          const resourceUnitPrice = Number(resource.unitPrice) || 0;
+          const confidence = resource.libraryResourceId ? Math.max(0.94, resource.mappingConfidence || 0) : 0.96;
+          return {
+            id: createId("nexus-ai-resource"),
+            resourceId: resource.libraryResourceId,
+            resourceCode: resource.libraryResourceCode ?? `CCA-${analysis.code}-${String(index + 1).padStart(2, "0")}`,
+            resourceType: resource.type,
+            name: resource.name,
+            catalogName: resource.libraryResourceName ?? undefined,
+            unit: resource.unit,
+            quantity: normalizedQuantity,
+            unitPrice: resourceUnitPrice,
+            wastePercentage: 0,
+            wasteQuantity: 0,
+            finalQuantity: normalizedQuantity,
+            subtotal: normalizedQuantity * resourceUnitPrice,
+            source: resource.libraryResourceId ? "library" : "knowledge-base",
+            confidence,
+            confidenceLevel: "high",
+            matchReason: resource.libraryResourceId
+              ? `APU Construcosto ${analysis.code}; vinculado a ${resource.libraryResourceCode ?? resource.libraryResourceId}.`
+              : `APU Construcosto ${analysis.code}; recurso conservado con nomenclatura de fuente.`,
+            notes: `Fuente ${detailed.regionLabel}, ${detailed.period}. Cantidad fuente: ${resource.sourceQuantity} ${resource.unit} para volumen de análisis ${detailed.baseQuantity} ${detailed.baseUnit}. Coeficiente normalizado: ${normalizedQuantity.toFixed(8)} por ${detailed.baseUnit}.`,
+            requiresReview: normalizedQuantity <= 0 || resourceUnitPrice <= 0,
+          };
+        });
+        const summary = calculateApuSummary(resources);
+        const auditWarning = Math.abs(detailed.auditDifference) > 1
+          ? [`La suma de líneas difiere del total publicado por RD$ ${Math.abs(detailed.auditDifference).toFixed(2)}; revisar antes de uso contractual.`]
+          : [];
+        const priceWarning = Math.abs(summary.suggestedUnitPrice - detailed.listedUnitPrice) > Math.max(0.05, detailed.listedUnitPrice * 0.001)
+          ? [`El costo recalculado (${summary.suggestedUnitPrice.toFixed(2)}) difiere del precio publicado (${detailed.listedUnitPrice.toFixed(2)}).`]
+          : [];
+        const proposal: NexusAiApuProposal = {
+          id: createId("nexus-ai-apu"), request: { ...request, description: request.description.trim(), quantity, unit }, parsedDescription,
+          knowledgeRuleId: `construcosto-detailed:${analysis.id}`, code: analysis.code, name: analysis.name,
+          description: `${detailed.groupCode} ${detailed.groupName} · APU Construcosto desglosado`, unit, quantity, category, resources,
+          assumptions: [
+            `Se utilizó el APU ${analysis.code} de Construcosto para ${detailed.regionLabel}, ${detailed.period}.`,
+            `Volumen base del análisis fuente: ${detailed.baseQuantity} ${detailed.baseUnit}. Las cantidades fueron normalizadas a una unidad de partida.`,
+            ...(detailed.yield ? [`Rendimiento publicado: ${detailed.yield} ${detailed.yieldUnit ?? ""}.`] : []),
+          ],
+          warnings: [...auditWarning, ...priceWarning],
+          summary,
+          confidence: 0.99,
+          confidenceLevel: "high",
+          requiresReview: resources.some((resource) => resource.requiresReview) || auditWarning.length > 0,
+          generatedAt: new Date().toISOString(),
+        };
+        emitProgress(options.onProgress, "completed", 100, `APU Construcosto desglosado: ${analysis.code} · ${analysis.name}`);
+        return { success: true, status: "completed", proposal, errors: [], durationMs: Date.now() - startedAt };
+      }
+
+      const resources: NexusAiApuResourceSuggestion[] = [{
+        id: createId("nexus-ai-resource"), resourceId: null, resourceCode: `CCA-${analysis.code}`, resourceType: "subcontract",
+        name: `${analysis.code} · ${analysis.name}`, unit, quantity: 1, unitPrice, wastePercentage: 0, wasteQuantity: 0, finalQuantity: 1, subtotal: unitPrice,
+        source: "knowledge-base", confidence: 0.98, confidenceLevel: "high",
+        matchReason: `Coincidencia Construcosto: ${analysis.code} · ${analysis.name}.`,
+        notes: `Precio todo costo de Construcosto para ${RegionalPricingService.getRegionLabel(projectRegion)}, ${analysis.period}. No se encontró una plantilla detallada para esta coincidencia.`,
+        requiresReview: unitPrice <= 0,
+      }];
+      const summary = calculateApuSummary(resources);
+      const proposal: NexusAiApuProposal = {
+        id: createId("nexus-ai-apu"), request: { ...request, description: request.description.trim(), quantity, unit }, parsedDescription,
+        knowledgeRuleId: `construcosto:${analysis.id}`, code: analysis.code, name: analysis.name,
+        description: `${analysis.group} · Análisis de costos Construcosto`, unit, quantity, category, resources,
+        assumptions: [`Se utilizó el análisis ${analysis.code} de Construcosto como coincidencia prioritaria.`],
+        warnings: unitPrice > 0
+          ? [detailed && !detailedIsConsistent
+              ? "Construcosto expone un desglose para esta partida, pero sus líneas no reproducen el precio publicado dentro de la tolerancia de auditoría. NEXUS conserva el precio compuesto y evita aplicar un APU inconsistente."
+              : "Existe el análisis regional, pero no se encontró un desglose interno compatible en el banco detallado."]
+          : ["El análisis fue reconocido, pero no tiene precio regional válido."],
+        summary, confidence: 0.98, confidenceLevel: "high", requiresReview: unitPrice <= 0 || Boolean(detailed && !detailedIsConsistent), generatedAt: new Date().toISOString(),
+      };
+      emitProgress(options.onProgress, "completed", 100, `Coincidencia Construcosto: ${analysis.code} · ${analysis.name}`);
+      return { success: true, status: "completed", proposal, errors: [], durationMs: Date.now() - startedAt };
+    }
 
     const knowledgeMatch =
       NexusAiKnowledgeService.findBestMatch(

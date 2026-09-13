@@ -13,7 +13,8 @@ import {
 import BudgetHeader from "@/components/budget/BudgetHeader";
 import BudgetSummaryCards from "@/components/budget/BudgetSummaryCards";
 import BudgetTable from "@/components/budget/BudgetTable";
-import BudgetTotals from "@/components/budget/BudgetTotals";
+import BudgetTotals, { calculateBudgetTotals } from "@/components/budget/BudgetTotals";
+import BudgetCommercialPanel from "@/components/budget/BudgetCommercialPanel";
 import ApuValidationPanel from "@/components/budget/ApuValidationPanel";
 
 import { ApuService } from "@/services/apu.service";
@@ -491,6 +492,8 @@ export default function BudgetWorkspace({
           />
 
           {items.length > 0 && <ApuValidationPanel projectId={project.id} items={items} />}
+
+          {totalsValues && <BudgetCommercialPanel projectId={project.id} total={calculateBudgetTotals(budgetSummary.directCost, totalsValues).totalDop} />}
 
           {chapterGroups.length >
             0 &&

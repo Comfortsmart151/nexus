@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Check,
   FileSearch,
   Loader2,
   Ruler,
+  DoorOpen,
+  PanelsTopLeft,
   ScanLine,
   TriangleAlert,
   X,
@@ -30,6 +33,7 @@ export default function PlanAnalysisWorkspace({
   projectId: string;
   planId: string;
 }) {
+  const router = useRouter();
   const [analysis, setAnalysis] = useState<PlanAnalysis | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -56,6 +60,10 @@ export default function PlanAnalysisWorkspace({
     setAnalysis(PlanAnalysisService.setDecision(planId, id, decision));
   }
 
+  function updateElement(id: string, patch: Parameters<typeof PlanAnalysisService.updateArchitecturalElement>[2]) {
+    setAnalysis(PlanAnalysisService.updateArchitecturalElement(planId, id, patch));
+  }
+
   function updateProposal(
     id: string,
     patch: Parameters<typeof PlanAnalysisService.updateProposal>[2],
@@ -65,7 +73,9 @@ export default function PlanAnalysisWorkspace({
 
   function approve() {
     try {
-      setAnalysis(PlanAnalysisService.approveAccepted(planId));
+      const approved = PlanAnalysisService.approveAccepted(planId);
+      setAnalysis(approved);
+      router.push(`/projects/${projectId}/analyses`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo incorporar.");
     }
@@ -90,7 +100,7 @@ export default function PlanAnalysisWorkspace({
 
         <div className="mt-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold text-blue-600">NEXUS · Motor de Planos v3</p>
+            <p className="text-sm font-semibold text-blue-600">NEXUS · Motor de Planos v4.3</p>
             <h1 className="mt-1 text-3xl font-bold">Interpretación geométrica y partidas</h1>
             <p className="mt-2 max-w-3xl text-slate-500">
               NEXUS usa texto, posición de cotas, rótulos y elevaciones del PDF para reconstruir
@@ -104,7 +114,7 @@ export default function PlanAnalysisWorkspace({
               className="inline-flex items-center justify-center gap-2 rounded-xl border bg-white px-5 py-3 font-semibold shadow-sm disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ScanLine className="h-5 w-5" />}
-              {busy ? "Reanalizando..." : "Reanalizar con v3"}
+              {busy ? "Reanalizando..." : "Reanalizar con v4.3"}
             </button>
           )}
         </div>
@@ -222,6 +232,42 @@ export default function PlanAnalysisWorkspace({
                     {geometry.notes.map((note) => <li key={note}>• {note}</li>)}
                   </ul>
                 )}
+              </section>
+            )}
+
+            {!!analysis.architecturalElements?.length && (
+              <section className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-blue-600">Reconocimiento arquitectónico</p>
+                    <h2 className="mt-1 text-xl font-bold">Puertas, ventanas y huecos</h2>
+                    <p className="mt-1 text-sm text-slate-500">NEXUS detecta solo elementos con evidencia defendible. Corrige cantidad o dimensiones antes de aceptar las partidas.</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-4 py-2 text-right text-sm">
+                    <p><b>Huecos:</b> {formatNumber(analysis.openingsArea)} m²</p>
+                    {analysis.netExteriorWallArea !== undefined && <p><b>Muro neto:</b> {formatNumber(analysis.netExteriorWallArea)} m²</p>}
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                  {analysis.architecturalElements.map((e) => (
+                    <article key={e.id} className="rounded-2xl border p-5">
+                      <div className="flex items-start gap-3">
+                        <div className="rounded-xl bg-blue-50 p-2 text-blue-600">{e.type === "door" ? <DoorOpen className="h-5 w-5" /> : <PanelsTopLeft className="h-5 w-5" />}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2"><h3 className="font-bold">{e.label}</h3><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold">Confianza {e.confidence}</span></div>
+                          <p className="mt-1 text-xs text-slate-500">Página {e.sourcePage} · {e.source}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-3 gap-3">
+                        <label className="text-xs font-semibold text-slate-600">Cantidad<input type="number" min="0" step="1" value={e.quantity} onChange={(ev) => updateElement(e.id, { quantity: Number(ev.target.value) })} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" /></label>
+                        <label className="text-xs font-semibold text-slate-600">Ancho (m)<input type="number" min="0" step="0.01" value={e.width ?? ""} onChange={(ev) => updateElement(e.id, { width: Number(ev.target.value) })} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" /></label>
+                        <label className="text-xs font-semibold text-slate-600">Alto (m)<input type="number" min="0" step="0.01" value={e.height ?? ""} onChange={(ev) => updateElement(e.id, { height: Number(ev.target.value) })} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" /></label>
+                      </div>
+                      <label className="mt-4 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={e.confirmed} onChange={(ev) => updateElement(e.id, { confirmed: ev.target.checked })} /> Confirmado por revisión humana</label>
+                    </article>
+                  ))}
+                </div>
+                <p className="mt-4 text-xs text-amber-700">El descuento de huecos es provisional hasta revisar el conteo. NEXUS no inventa ventanas o puertas que no pueda sustentar con el PDF.</p>
               </section>
             )}
 

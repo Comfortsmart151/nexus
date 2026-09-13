@@ -1,0 +1,3 @@
+export interface RevisionItemSnapshot { id:string; code?:string; name:string; unit:string; quantity:number; unitPrice:number; amount:number; }
+export interface BudgetRevision { id:string; projectId:string; number:number; label:string; documentCode:string; directCost:number; total:number; itemsCount:number; pricedItemsCount:number; note:string; createdAt:string; items:RevisionItemSnapshot[]; }
+export interface RevisionItemChange { key:string; kind:"added"|"removed"|"changed"; name:string; code?:string; previousQuantity?:number; currentQuantity?:number; previousUnitPrice?:number; currentUnitPrice?:number; previousAmount?:number; currentAmount?:number; }

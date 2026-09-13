@@ -32,6 +32,7 @@ import { ChapterService } from "@/services/chapter.service";
 import { ItemService } from "@/services/item.service";
 import { LibraryService } from "@/services/library.service";
 import { ProjectService } from "@/services/project.service";
+import { RegionalPricingService } from "@/services/regionalPricing.service";
 import type {
   BudgetChapter,
   BudgetItem,
@@ -225,6 +226,9 @@ export default function AnalysisWorkspace({
   }
 
   function getLibraryPriceMetadata(libraryResource: LibraryResource) {
+    const regionalEntry = RegionalPricingService.getRegionalEntry(libraryResource.id);
+    const regionalPrice = RegionalPricingService.resolveResourcePrice(libraryResource, project?.priceRegion);
+    const regionalSource = project?.priceRegion ? regionalEntry?.prices?.[project.priceRegion] : undefined;
     const latest = libraryResource.priceHistory?.[0];
     const statusText = [
       latest?.verificationStatus,
@@ -242,20 +246,22 @@ export default function AnalysisWorkspace({
       statusText.includes("reference");
 
     return {
-      priceStatus: libraryResource.defaultUnitPrice <= 0
+      priceStatus: regionalPrice <= 0
         ? ("missing" as const)
         : isReferential
           ? ("referential" as const)
           : ("confirmed" as const),
       priceSource:
+        regionalSource ? `Construcosto.do — ${regionalSource.region}` :
         latest?.source ||
         libraryResource.source ||
         latest?.supplier ||
         libraryResource.supplier,
       priceSourceDate:
+        regionalSource ? "2026-08-31" :
         latest?.registeredAt ||
         libraryResource.priceUpdatedAt,
-      priceConfidence: latest?.mappingConfidence,
+      priceConfidence: regionalSource ? "SOURCE_NATIVE" : latest?.mappingConfidence,
     };
   }
 
@@ -268,7 +274,7 @@ export default function AnalysisWorkspace({
     setResourceUnit(libraryResource.unit);
 
     setResourceUnitPrice(
-      String(libraryResource.defaultUnitPrice),
+      String(RegionalPricingService.resolveResourcePrice(libraryResource, project?.priceRegion)),
     );
 
     // El desperdicio de biblioteca es una sugerencia: se precarga, pero el usuario puede cambiarlo por APU.
@@ -504,11 +510,11 @@ export default function AnalysisWorkspace({
           </h1>
 
           <Link
-            href="/dashboard"
+            href={project ? `/projects/${project.id}/analyses` : "/projects"}
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white"
           >
             <ArrowLeft className="h-5 w-5" />
-            Volver al Dashboard
+            Volver al centro de APU
           </Link>
         </div>
       </main>
@@ -778,6 +784,7 @@ export default function AnalysisWorkspace({
         }
         initialUnit={item.unit}
         initialQuantity={item.quantity}
+        projectId={projectId}
       />
     </main>
   );

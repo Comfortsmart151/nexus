@@ -6,6 +6,8 @@ import { ArrowLeft, ArrowRight, Check, Save } from "lucide-react";
 import { useState } from "react";
 
 import { ProjectService } from "@/services/project.service";
+import { PRICE_REGIONS } from "@/services/regionalPricing.service";
+import type { ProjectPriceRegion } from "@/types/construcosto";
 
 const projectTypes = [
   "Vivienda",
@@ -23,8 +25,14 @@ export default function NewProjectForm() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [client, setClient] = useState("");
+  const [clientTaxId, setClientTaxId] = useState("");
+  const [clientContact, setClientContact] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [clientAddress, setClientAddress] = useState("");
   const [location, setLocation] = useState("");
   const [projectType, setProjectType] = useState("");
+  const [priceRegion, setPriceRegion] = useState<ProjectPriceRegion>("santiago-cibao");
 
   const fieldsAreValid = Boolean(
     name.trim() &&
@@ -39,8 +47,10 @@ export default function NewProjectForm() {
     const project = ProjectService.create({
       name,
       client,
+      clientTaxId, clientContact, clientPhone, clientEmail, clientAddress,
       location,
       projectType,
+      priceRegion,
     });
 
     router.push(`/projects/${project.id}`);
@@ -107,13 +117,26 @@ export default function NewProjectForm() {
               title="¿Quién es el cliente?"
               description="Puede ser una persona, empresa o institución."
             >
-              <input
-                autoFocus
-                value={client}
-                onChange={(event) => setClient(event.target.value)}
-                placeholder="Nombre del cliente"
-                className="nexus-input"
-              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">Cliente / empresa
+                  <input autoFocus value={client} onChange={(event) => setClient(event.target.value)} placeholder="Nombre del cliente o empresa" className="nexus-input mt-2" />
+                </label>
+                <label className="text-sm font-semibold text-slate-700">RNC / Cédula
+                  <input value={clientTaxId} onChange={(event) => setClientTaxId(event.target.value)} placeholder="Identificación fiscal" className="nexus-input mt-2" />
+                </label>
+                <label className="text-sm font-semibold text-slate-700">Persona de contacto
+                  <input value={clientContact} onChange={(event) => setClientContact(event.target.value)} placeholder="Nombre del contacto" className="nexus-input mt-2" />
+                </label>
+                <label className="text-sm font-semibold text-slate-700">Teléfono
+                  <input value={clientPhone} onChange={(event) => setClientPhone(event.target.value)} placeholder="809-000-0000" className="nexus-input mt-2" />
+                </label>
+                <label className="text-sm font-semibold text-slate-700">Correo
+                  <input type="email" value={clientEmail} onChange={(event) => setClientEmail(event.target.value)} placeholder="cliente@correo.com" className="nexus-input mt-2" />
+                </label>
+                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">Dirección del cliente
+                  <input value={clientAddress} onChange={(event) => setClientAddress(event.target.value)} placeholder="Dirección fiscal o comercial" className="nexus-input mt-2" />
+                </label>
+              </div>
             </Step>
           )}
 
@@ -129,6 +152,14 @@ export default function NewProjectForm() {
                 placeholder="Ej. Santiago, República Dominicana"
                 className="nexus-input"
               />
+
+              <div className="mt-6">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Región de precios Construcosto</label>
+                <select value={priceRegion} onChange={(event) => setPriceRegion(event.target.value as ProjectPriceRegion)} className="nexus-input">
+                  {PRICE_REGIONS.map((region) => <option key={region.value} value={region.value}>{region.label}</option>)}
+                </select>
+                <p className="mt-2 text-xs text-slate-500">Los APU generados usarán primero los precios de agosto 2026 de esta región cuando exista coincidencia regional.</p>
+              </div>
             </Step>
           )}
 

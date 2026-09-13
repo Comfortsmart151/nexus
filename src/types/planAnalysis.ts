@@ -33,6 +33,21 @@ export interface PlanGeometrySummary {
   notes: string[];
 }
 
+export type PlanArchitecturalElementType = "door" | "window";
+
+export interface PlanArchitecturalElement {
+  id: string;
+  type: PlanArchitecturalElementType;
+  label: string;
+  quantity: number;
+  width?: number;
+  height?: number;
+  sourcePage: number;
+  source: string;
+  confidence: "high" | "medium" | "low";
+  confirmed: boolean;
+}
+
 export interface PlanItemProposal {
   id: string;
   code: string;
@@ -59,6 +74,9 @@ export interface PlanAnalysis {
   pages: number;
   extractedText: string;
   geometry?: PlanGeometrySummary;
+  architecturalElements?: PlanArchitecturalElement[];
+  openingsArea?: number;
+  netExteriorWallArea?: number;
   measurements: PlanMeasurement[];
   proposals: PlanItemProposal[];
   warnings: string[];

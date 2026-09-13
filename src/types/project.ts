@@ -1,3 +1,5 @@
+import type { ProjectPriceRegion } from "@/types/construcosto";
+
 export type ProjectStatus =
   | "draft"
   | "in-progress"
@@ -18,8 +20,14 @@ export interface Project {
   code: string;
   name: string;
   client: string;
+  clientTaxId?: string;
+  clientContact?: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  clientAddress?: string;
   location: string;
   projectType: string;
+  priceRegion: ProjectPriceRegion;
   status: ProjectStatus;
   progress: number;
   currentStep: ProjectStep;

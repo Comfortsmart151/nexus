@@ -72,3 +72,66 @@ button {
   border-color: #2563eb;
   box-shadow: 0 0 0 4px rgb(37 99 235 / 0.1);
 }
+/* V5.1.4: los colores de marca se propagan a los acentos principales sin alterar estados semánticos. */
+[data-app-theme] .bg-blue-600 { background-color: var(--nexus-primary) !important; }
+[data-app-theme] .text-blue-600, [data-app-theme] .text-blue-700 { color: var(--nexus-primary) !important; }
+[data-app-theme] .border-blue-600 { border-color: var(--nexus-primary) !important; }
+[data-app-theme] .bg-blue-50 { background-color: color-mix(in srgb, var(--nexus-primary) 9%, white) !important; }
+[data-app-theme] .focus\:border-blue-400:focus { border-color: var(--nexus-primary) !important; }
+
+/* NEXUS V5.2 — QA, accesibilidad, responsive y consistencia visual */
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--nexus-primary) 55%, white);
+  outline-offset: 2px;
+}
+
+.nexus-skip-link {
+  position: fixed;
+  left: 1rem;
+  top: -4rem;
+  z-index: 9999;
+  border-radius: .75rem;
+  background: var(--nexus-primary);
+  color: white;
+  padding: .75rem 1rem;
+  font-weight: 700;
+  transition: top 150ms ease;
+}
+.nexus-skip-link:focus { top: 1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+
+/* La aplicación conserva contraste real cuando el usuario selecciona modo oscuro. */
+[data-theme="dark"] body,
+[data-theme="dark"] .bg-slate-100 { background-color: var(--nexus-deep) !important; color: var(--nexus-text); }
+[data-theme="dark"] .bg-white { background-color: var(--nexus-surface) !important; }
+[data-theme="dark"] .text-slate-950,
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-slate-700 { color: #f8fafc !important; }
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-slate-500,
+[data-theme="dark"] .text-slate-400 { color: #a8b5c7 !important; }
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-slate-300 { border-color: color-mix(in srgb, var(--nexus-border) 85%, white 8%) !important; }
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select,
+[data-theme="dark"] .nexus-input { background: #0f172a; color: #f8fafc; border-color: #334155; color-scheme: dark; }
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder { color: #94a3b8; }
+[data-theme="dark"] .bg-slate-50 { background-color: #111c30 !important; }
+[data-theme="dark"] .bg-slate-950 { background-color: #020617 !important; }
+[data-theme="dark"] .nexus-nav-row:hover,
+[data-theme="dark"] .nexus-nav-children a:hover { background-color: #172033 !important; }
+[data-theme="dark"] .nexus-powered { border: 1px solid #243047; }
+
+/* Tablas y superficies extensas no rompen el layout en móvil. */
+.nexus-table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 640px) {
+  body { font-size: 15px; }
+  .nexus-mobile-header + main > main { padding-left: 1rem !important; padding-right: 1rem !important; }
+}

@@ -14,6 +14,8 @@ import type { ElementType } from "react";
 import type { ResourceType } from "@/types/budget";
 import type { LibraryResource } from "@/types/library";
 import type { LibraryAuditResult, LibraryAuditFlag } from "@/services/libraryAudit.service";
+import { RegionalPricingService } from "@/services/regionalPricing.service";
+import type { ProjectPriceRegion } from "@/types/construcosto";
 
 interface ResourceTypeOption {
   type: ResourceType;
@@ -32,6 +34,7 @@ interface LibraryTableProps {
   onValidateData: (resource: LibraryResource) => void;
   onValidatePrice: (resource: LibraryResource) => void;
   auditResults: Map<string, LibraryAuditResult>;
+  priceRegion: ProjectPriceRegion;
 }
 
 export default function LibraryTable({
@@ -45,6 +48,7 @@ export default function LibraryTable({
   onValidateData,
   onValidatePrice,
   auditResults,
+  priceRegion,
 }: LibraryTableProps) {
   if (resources.length === 0) {
     return (
@@ -182,17 +186,10 @@ export default function LibraryTable({
 
                 <td className="px-6 py-5 text-right">
                   <p className="font-bold text-slate-950">
-                    {formatCurrency(
-                      resource.defaultUnitPrice,
-                    )}
+                    {formatCurrency(RegionalPricingService.resolveResourcePrice(resource, priceRegion))}
                   </p>
 
-                  <p className="mt-1 text-xs text-slate-400">
-                    {resource.priceHistory.length}{" "}
-                    {resource.priceHistory.length === 1
-                      ? "registro"
-                      : "registros"}
-                  </p>
+                  <p className="mt-1 text-xs text-slate-400">{RegionalPricingService.getRegionLabel(priceRegion)} · {resource.priceHistory.length} {resource.priceHistory.length === 1 ? "registro" : "registros"}</p>
                 </td>
 
                 <td className="px-6 py-5 text-slate-500">

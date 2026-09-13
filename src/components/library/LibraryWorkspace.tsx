@@ -31,6 +31,8 @@ import ResourceModal from "@/components/library/ResourceModal";
 import { LibraryService } from "@/services/library.service";
 import { LibraryAuditService } from "@/services/libraryAudit.service";
 import { LibraryNormalizationService, type LibraryNormalizationProposal } from "@/services/libraryNormalization.service";
+import { PRICE_REGIONS, RegionalPricingService } from "@/services/regionalPricing.service";
+import type { ProjectPriceRegion } from "@/types/construcosto";
 
 import type { ResourceType } from "@/types/budget";
 import type {
@@ -82,6 +84,7 @@ export default function LibraryWorkspace() {
   const [auditFilter, setAuditFilter] = useState<AuditFilter>("all");
   const [loaded, setLoaded] = useState(false);
   const [normalizationOpen, setNormalizationOpen] = useState(false);
+  const [priceRegion, setPriceRegion] = useState<ProjectPriceRegion>("santiago-cibao");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] =
@@ -453,6 +456,22 @@ export default function LibraryWorkspace() {
             onImportResources={openImportModal}
           />
 
+
+          <section className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-bold text-blue-900">Construcosto · agosto 2026 integrado</p>
+                <p className="mt-1 text-sm text-blue-800">{RegionalPricingService.getStats().canonicalResources.toLocaleString("es-DO")} recursos regionales · {RegionalPricingService.getStats().costAnalyses.toLocaleString("es-DO")} análisis de costo · 3 regiones.</p>
+              </div>
+              <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                Región visible
+                <select value={priceRegion} onChange={(event) => setPriceRegion(event.target.value as ProjectPriceRegion)} className="rounded-xl border border-blue-200 bg-white px-3 py-2">
+                  {PRICE_REGIONS.map((region) => <option key={region.value} value={region.value}>{region.label}</option>)}
+                </select>
+              </label>
+            </div>
+          </section>
+
           <div className="mt-4 flex justify-end">
             <button
               type="button"
@@ -503,6 +522,7 @@ export default function LibraryWorkspace() {
               onValidateData={validateData}
               onValidatePrice={validatePrice}
               auditResults={auditResults}
+              priceRegion={priceRegion}
             />
 
             {filteredResources.length === 0 && (

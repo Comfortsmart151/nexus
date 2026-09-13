@@ -40,6 +40,7 @@ interface NexusAiGeneratorModalProps {
   initialDescription?: string;
   initialUnit?: string;
   initialQuantity?: number;
+  projectId?: string;
 }
 
 type ModalStep =
@@ -67,9 +68,11 @@ function createInitialRequest(
   description = "",
   unit = "",
   quantity = 1,
+  projectId?: string,
 ): NexusAiGenerationRequest {
   return {
     description,
+    projectId,
     unit: unit || undefined,
     quantity,
     countryCode: "DO",
@@ -114,6 +117,7 @@ export function NexusAiGeneratorModal({
   initialDescription = "",
   initialUnit = "",
   initialQuantity = 1,
+  projectId,
 }: NexusAiGeneratorModalProps) {
   const [step, setStep] =
     useState<ModalStep>("prompt");
@@ -124,6 +128,7 @@ export function NexusAiGeneratorModal({
         initialDescription,
         initialUnit,
         initialQuantity,
+        projectId,
       ),
     );
 
@@ -166,6 +171,7 @@ export function NexusAiGeneratorModal({
         initialDescription,
         initialUnit,
         initialQuantity,
+        projectId,
       ),
     );
 
@@ -179,6 +185,7 @@ export function NexusAiGeneratorModal({
     initialDescription,
     initialUnit,
     initialQuantity,
+    projectId,
   ]);
   /* eslint-enable react-hooks/set-state-in-effect */
 

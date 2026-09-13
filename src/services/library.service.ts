@@ -16,7 +16,7 @@ const LIBRARY_COUNTER_KEY = "nexus-library-counter";
 const LIBRARY_OVERRIDES_KEY = "nexus-library-overrides";
 const LIBRARY_SEEDED_KEY = "nexus-library-seeded";
 const NEXUS_MASTER_VERSION_KEY = "nexus-master-library-version";
-const NEXUS_MASTER_VERSION = "2026.09.11-construcosto-primary-01";
+const NEXUS_MASTER_VERSION = "2026.09.12-construcosto-apu-detailed-03";
 const LEGACY_MATERIALS_RECOVERY: CreateLibraryResourceInput[] = [
   { code: "MAT-HIST-00001", type: "material", name: "Cemento gris", unit: "funda", defaultUnitPrice: 140, supplier: "Manual de Costos — precio histórico; actualizar antes de usar", description: "Precio de referencia histórico extraído del Manual de Costos." },
   { code: "MAT-HIST-00002", type: "material", name: "Arena de Itabo", unit: "m³", defaultUnitPrice: 550, supplier: "Manual de Costos — precio histórico; actualizar antes de usar", description: "Arena utilizada en morteros y hormigones." },

@@ -5,6 +5,7 @@ import type {
   ProjectStep,
 } from "@/types/project";
 import { generateProjectId } from "@/utils/idGenerator";
+import type { ProjectPriceRegion } from "@/types/construcosto";
 
 const PROJECTS_KEY = "nexus-projects";
 const PROJECT_COUNTER_KEY = "nexus-project-counter";
@@ -12,15 +13,27 @@ const PROJECT_COUNTER_KEY = "nexus-project-counter";
 export interface CreateProjectInput {
   name: string;
   client: string;
+  clientTaxId?: string;
+  clientContact?: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  clientAddress?: string;
   location: string;
   projectType: string;
+  priceRegion?: ProjectPriceRegion;
 }
 
 export interface UpdateProjectInput {
   name?: string;
   client?: string;
+  clientTaxId?: string;
+  clientContact?: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  clientAddress?: string;
   location?: string;
   projectType?: string;
+  priceRegion?: ProjectPriceRegion;
   status?: ProjectStatus;
   progress?: number;
   currentStep?: ProjectStep;
@@ -65,8 +78,14 @@ export class ProjectService {
       code: projectId,
       name: input.name.trim(),
       client: input.client.trim(),
+      clientTaxId: input.clientTaxId?.trim() || "",
+      clientContact: input.clientContact?.trim() || "",
+      clientPhone: input.clientPhone?.trim() || "",
+      clientEmail: input.clientEmail?.trim() || "",
+      clientAddress: input.clientAddress?.trim() || "",
       location: input.location.trim(),
       projectType: input.projectType.trim(),
+      priceRegion: input.priceRegion ?? "santiago-cibao",
       status: "in-progress",
       progress: 20,
       currentStep: "chapters",
@@ -98,9 +117,15 @@ export class ProjectService {
       ...currentProject,
       name: input.name?.trim() ?? currentProject.name,
       client: input.client?.trim() ?? currentProject.client,
+      clientTaxId: input.clientTaxId?.trim() ?? currentProject.clientTaxId,
+      clientContact: input.clientContact?.trim() ?? currentProject.clientContact,
+      clientPhone: input.clientPhone?.trim() ?? currentProject.clientPhone,
+      clientEmail: input.clientEmail?.trim() ?? currentProject.clientEmail,
+      clientAddress: input.clientAddress?.trim() ?? currentProject.clientAddress,
       location: input.location?.trim() ?? currentProject.location,
       projectType:
         input.projectType?.trim() ?? currentProject.projectType,
+      priceRegion: input.priceRegion ?? currentProject.priceRegion,
       status: input.status ?? currentProject.status,
       progress:
         input.progress !== undefined
@@ -165,10 +190,16 @@ export class ProjectService {
       code: project.code || id,
       name: project.name?.trim() || "Proyecto sin nombre",
       client: project.client?.trim() || "Cliente no especificado",
+      clientTaxId: project.clientTaxId?.trim() || "",
+      clientContact: project.clientContact?.trim() || "",
+      clientPhone: project.clientPhone?.trim() || "",
+      clientEmail: project.clientEmail?.trim() || "",
+      clientAddress: project.clientAddress?.trim() || "",
       location:
         project.location?.trim() || "Ubicación no especificada",
       projectType:
         project.projectType?.trim() || "Tipo no especificado",
+      priceRegion: project.priceRegion || "santiago-cibao",
       status: project.status || "in-progress",
       progress: ProjectService.clampProgress(
         project.progress ?? 20,

@@ -1,0 +1,17 @@
+{
+  "originalMaster": 5840,
+  "finalMaster": 7084,
+  "sourceCanonicalResources": 2056,
+  "materials": 1377,
+  "labor": 643,
+  "equipment": 36,
+  "safeExistingMatches": 812,
+  "newResources": 1244,
+  "ambiguousExistingNotOverwritten": 68,
+  "costAnalyses": 440,
+  "regions": [
+    "Santo Domingo",
+    "Santiago–Cibao",
+    "Punta Cana"
+  ]
+}

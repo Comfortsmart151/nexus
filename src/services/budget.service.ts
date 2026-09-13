@@ -1,5 +1,7 @@
 import { LocalStorageRepository } from "@/repositories/localStorage.repository";
 
+import { SettingsService } from "@/services/settings.service";
+
 import type {
   Budget,
   BudgetAdjustments,
@@ -129,6 +131,8 @@ export class BudgetService {
     const now =
       new Date().toISOString();
 
+    const settings = SettingsService.get();
+
     const budget: Budget = {
       id: `BUD-${String(
         nextCounter,
@@ -146,6 +150,7 @@ export class BudgetService {
         "in-progress",
       currency:
         input.currency ??
+        settings.currency ??
         "DOP",
       exchangeRate:
         BudgetService.sanitizeNumber(
@@ -156,29 +161,25 @@ export class BudgetService {
           BudgetService.sanitizeNumber(
             input.adjustments
               ?.generalExpensesPercentage ??
-              DEFAULT_ADJUSTMENTS
-                .generalExpensesPercentage,
+              settings.defaultGeneralExpensesPercentage ?? DEFAULT_ADJUSTMENTS.generalExpensesPercentage,
           ),
         contingencyPercentage:
           BudgetService.sanitizeNumber(
             input.adjustments
               ?.contingencyPercentage ??
-              DEFAULT_ADJUSTMENTS
-                .contingencyPercentage,
+              settings.defaultContingencyPercentage ?? DEFAULT_ADJUSTMENTS.contingencyPercentage,
           ),
         profitPercentage:
           BudgetService.sanitizeNumber(
             input.adjustments
               ?.profitPercentage ??
-              DEFAULT_ADJUSTMENTS
-                .profitPercentage,
+              settings.defaultProfitPercentage ?? DEFAULT_ADJUSTMENTS.profitPercentage,
           ),
         itbisPercentage:
           BudgetService.sanitizeNumber(
             input.adjustments
               ?.itbisPercentage ??
-              DEFAULT_ADJUSTMENTS
-                .itbisPercentage,
+              settings.defaultTaxPercentage ?? DEFAULT_ADJUSTMENTS.itbisPercentage,
           ),
       },
       createdAt: now,
@@ -364,29 +365,25 @@ export class BudgetService {
           BudgetService.sanitizeNumber(
             budget.adjustments
               ?.generalExpensesPercentage ??
-              DEFAULT_ADJUSTMENTS
-                .generalExpensesPercentage,
+              settings.defaultGeneralExpensesPercentage ?? DEFAULT_ADJUSTMENTS.generalExpensesPercentage,
           ),
         contingencyPercentage:
           BudgetService.sanitizeNumber(
             budget.adjustments
               ?.contingencyPercentage ??
-              DEFAULT_ADJUSTMENTS
-                .contingencyPercentage,
+              settings.defaultContingencyPercentage ?? DEFAULT_ADJUSTMENTS.contingencyPercentage,
           ),
         profitPercentage:
           BudgetService.sanitizeNumber(
             budget.adjustments
               ?.profitPercentage ??
-              DEFAULT_ADJUSTMENTS
-                .profitPercentage,
+              settings.defaultProfitPercentage ?? DEFAULT_ADJUSTMENTS.profitPercentage,
           ),
         itbisPercentage:
           BudgetService.sanitizeNumber(
             budget.adjustments
               ?.itbisPercentage ??
-              DEFAULT_ADJUSTMENTS
-                .itbisPercentage,
+              settings.defaultTaxPercentage ?? DEFAULT_ADJUSTMENTS.itbisPercentage,
           ),
       },
     };

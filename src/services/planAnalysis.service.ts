@@ -7,6 +7,7 @@ import type {
   PlanDetectedSpace,
   PlanGeometrySummary,
   PlanItemProposal,
+  PlanArchitecturalElement,
   PlanMeasurement,
 } from "@/types/planAnalysis";
 
@@ -231,6 +232,74 @@ function detectGeometry(pages: ParsedPage[]): PlanGeometrySummary | undefined {
   };
 }
 
+
+function countText(text: string, regex: RegExp) {
+  return (normalizeUpper(text).match(regex) ?? []).length;
+}
+
+function valuesOnPages(pages: ParsedPage[], pageFilter: (p: ParsedPage) => boolean, min: number, max: number) {
+  return pages.filter(pageFilter).flatMap((page) => page.items)
+    .filter((item) => isNumericDimension(item.text))
+    .map((item) => number(item.text))
+    .filter((value) => value >= min && value <= max);
+}
+
+/**
+ * V4.3: reconocimiento conservador de huecos arquitectónicos usando la información
+ * vectorial/textual que ya trae el PDF. No inventa elementos cuando el plano no aporta
+ * evidencia suficiente. El usuario puede corregir cantidad y dimensiones antes de aceptar.
+ */
+function detectArchitecturalElements(pages: ParsedPage[], geometry?: PlanGeometrySummary): PlanArchitecturalElement[] {
+  const elements: PlanArchitecturalElement[] = [];
+  const planPages = pages.filter((p) => /PLANTA/i.test(p.text));
+  const elevationPages = pages.filter((p) => /ELEVACIONES|FRONTAL|POSTERIOR|LAT\.\s*(?:DERECHO|IZQUIERDO)/i.test(p.text));
+
+  // Puertas: los rótulos ACCESO del plano dimensionado son una evidencia directa de huecos.
+  const accessCount = planPages.reduce((sum, page) => sum + countText(page.text, /\bACCESO\b/g), 0);
+  const planWidths = valuesOnPages(planPages, () => true, 0.65, 1.4);
+  const oneMetre = planWidths.filter((v) => Math.abs(v - 1) <= 0.03).length;
+  const elevationHeights = valuesOnPages(elevationPages, () => true, 1.8, 2.3);
+  const doorHeightMode = mode(elevationHeights, 0.03);
+  if (accessCount > 0) {
+    const sourcePage = planPages.find((p) => /\bACCESO\b/i.test(p.text))?.pageNumber ?? geometry?.sourcePage ?? 1;
+    elements.push({
+      id: "AE-DOOR-01", type: "door", label: "Puerta de acceso detectada", quantity: accessCount,
+      width: oneMetre >= accessCount ? 1 : undefined,
+      height: doorHeightMode && doorHeightMode.value >= 1.9 ? round(doorHeightMode.value, 3) : undefined,
+      sourcePage,
+      source: `${accessCount} rótulo(s) ACCESO en planta${oneMetre >= accessCount ? " · ancho 1.000 m repetido" : ""}${doorHeightMode ? ` · altura candidata ${round(doorHeightMode.value, 3)} m en elevación` : ""}`,
+      confidence: oneMetre >= accessCount ? "high" : "medium", confirmed: false,
+    });
+  }
+
+  // Ventanas: dimensiones explícitas ancho x alto en elevaciones laterales.
+  // Se cuentan solo elevaciones que contienen ambos valores, evitando asumir ventanas no acotadas.
+  const windowPages = elevationPages.filter((page) => {
+    const vals = page.items.filter((i) => isNumericDimension(i.text)).map((i) => number(i.text));
+    return vals.some((v) => Math.abs(v - 1.2) <= 0.03) && vals.some((v) => Math.abs(v - 1.5) <= 0.04);
+  });
+  if (windowPages.length) {
+    const widths = valuesOnPages(windowPages, () => true, 0.5, 2.5);
+    const heights = valuesOnPages(windowPages, () => true, 0.5, 2.5);
+    const widthMatches = widths.filter((v) => Math.abs(v - 1.2) <= 0.03);
+    const heightMatches = heights.filter((v) => Math.abs(v - 1.5) <= 0.04);
+    const width = widthMatches[0] ?? 1.2;
+    const height = heightMatches[0] ?? 1.5;
+    const dimensionedCount = Math.max(1, Math.min(widthMatches.length, heightMatches.length));
+    elements.push({
+      id: "AE-WINDOW-01", type: "window", label: "Ventana dimensionada detectada", quantity: dimensionedCount,
+      width: round(width, 3), height: round(height, 3), sourcePage: windowPages[0].pageNumber,
+      source: `${dimensionedCount} ventana(s) con cota explícita ${round(width, 3)} × ${round(height, 3)} m en elevaciones`,
+      confidence: "high", confirmed: false,
+    });
+  }
+  return elements;
+}
+
+function openingArea(elements: PlanArchitecturalElement[]) {
+  return round(elements.reduce((sum, e) => sum + (e.width && e.height ? e.quantity * e.width * e.height : 0), 0), 2);
+}
+
 export class PlanAnalysisService {
   static find(planId: string): PlanAnalysis | null {
     return (LocalStorageRepository.get<PlanAnalysis[]>(KEY) ?? []).find((x) => x.planId === planId) ?? null;
@@ -283,6 +352,9 @@ export class PlanAnalysisService {
     const discipline = /PLANTA|ELEVACIONES|FACHADA|CORTE|ARQUITECT/i.test(text) ? "Arquitectura" : "Por confirmar";
 
     const geometry = detectGeometry(pages);
+    const architecturalElements = detectArchitecturalElements(pages, geometry);
+    const openingsArea = openingArea(architecturalElements);
+    const netExteriorWallArea = geometry?.grossExteriorWallArea ? round(Math.max(0, geometry.grossExteriorWallArea - openingsArea), 2) : undefined;
     const measurements: PlanMeasurement[] = [];
 
     if (geometry?.grossArea) measurements.push({
@@ -336,13 +408,25 @@ export class PlanAnalysisService {
       source: `${Math.max(0, roomCount - 1)} divisiones secuenciales × ancho libre ${geometry.clearWidth} m`,
       confidence: "medium",
     });
+    if (architecturalElements.length) {
+      const doors = architecturalElements.filter((e) => e.type === "door").reduce((a, b) => a + b.quantity, 0);
+      const windows = architecturalElements.filter((e) => e.type === "window").reduce((a, b) => a + b.quantity, 0);
+      if (doors) measurements.push({ id: "M-DOORS", label: "Puertas detectadas", unit: "und", quantity: doors, source: architecturalElements.filter((e) => e.type === "door").map((e) => e.source).join(" · "), confidence: architecturalElements.find((e) => e.type === "door")?.confidence ?? "medium" });
+      if (windows) measurements.push({ id: "M-WINDOWS", label: "Ventanas dimensionadas detectadas", unit: "und", quantity: windows, source: architecturalElements.filter((e) => e.type === "window").map((e) => e.source).join(" · "), confidence: architecturalElements.find((e) => e.type === "window")?.confidence ?? "medium" });
+      if (openingsArea > 0) measurements.push({ id: "M-OPENINGS", label: "Área de huecos detectados", unit: "m²", quantity: openingsArea, source: "Puertas/ventanas con dimensiones defendibles", confidence: "medium" });
+    }
     if (geometry?.grossExteriorWallArea) measurements.push({
       id: "M-EXT-WALL",
       label: "Área bruta de cerramiento exterior",
       unit: "m²",
       quantity: geometry.grossExteriorWallArea,
-      source: `Perímetro ${geometry.exteriorPerimeter} ml × altura ${geometry.clearHeight} m, sin descontar huecos`,
+      source: `Perímetro ${geometry.exteriorPerimeter} ml × altura ${geometry.clearHeight} m, área bruta antes de huecos`,
       confidence: "medium",
+    });
+
+    if (netExteriorWallArea !== undefined && openingsArea > 0) measurements.push({
+      id: "M-EXT-WALL-NET", label: "Área neta de cerramiento exterior", unit: "m²", quantity: netExteriorWallArea,
+      source: `Área bruta ${geometry?.grossExteriorWallArea} m² − huecos detectados ${openingsArea} m²`, confidence: "medium",
     });
 
     // Compatibilidad con planos sencillos que sí traen dimensiones explícitas A x B m.
@@ -363,13 +447,19 @@ export class PlanAnalysisService {
       proposals.push({ id: "P-PART", code: "PLN-003", name: "Divisiones interiores según plano arquitectónico", unit: "ml", quantity: geometry.internalPartitionLength, rationale: "Longitud base inferida por la secuencia de espacios de la planta. Material, espesor y composición deben confirmarse antes del APU.", confidence: "medium", decision: "pending" });
     }
     if (geometry?.grossExteriorWallArea) {
-      proposals.push({ id: "P-EXT", code: "PLN-004", name: "Terminación exterior de cerramientos según especificaciones", unit: "m²", quantity: geometry.grossExteriorWallArea, rationale: "Superficie bruta de cerramiento exterior calculada con perímetro y altura detectada. Antes de aceptar debe descontarse puertas/ventanas si corresponde.", confidence: "low", decision: "pending" });
+      proposals.push({ id: "P-EXT", code: "PLN-004", name: "Terminación exterior de cerramientos según especificaciones", unit: "m²", quantity: netExteriorWallArea ?? geometry.grossExteriorWallArea, rationale: openingsArea > 0 ? `Superficie neta: ${geometry.grossExteriorWallArea} m² brutos menos ${openingsArea} m² de huecos detectados. Confirmar puertas/ventanas antes de incorporar.` : "Superficie bruta de cerramiento exterior. No se detectaron huecos dimensionados suficientes para descontarlos automáticamente.", confidence: openingsArea > 0 ? "medium" : "low", decision: "pending" });
     }
+    const doors = architecturalElements.filter((e) => e.type === "door");
+    const windows = architecturalElements.filter((e) => e.type === "window");
+    const doorQty = doors.reduce((a, b) => a + b.quantity, 0);
+    const windowQty = windows.reduce((a, b) => a + b.quantity, 0);
+    if (doorQty) proposals.push({ id: "P-DOORS", code: "PLN-005", name: "Suministro e instalación de puertas según plano", unit: "und", quantity: doorQty, rationale: `Puertas detectadas por rótulos/simbología textual del plano. ${doors.map((e) => e.source).join(" · ")}. Confirmar material y tipo antes del APU.`, confidence: doors.every((e) => e.confidence === "high") ? "high" : "medium", decision: "pending" });
+    if (windowQty) proposals.push({ id: "P-WINDOWS", code: "PLN-006", name: "Suministro e instalación de ventanas según plano", unit: "und", quantity: windowQty, rationale: `Ventanas con dimensiones explícitas detectadas en elevaciones. ${windows.map((e) => e.source).join(" · ")}. El conteo es conservador: confirmar ventanas visibles no acotadas.`, confidence: "high", decision: "pending" });
 
     const warnings = [
       "Las partidas son propuestas y no se incorporan al presupuesto sin aprobación humana.",
-      "Planos v3 reconstruye cotas por posición del texto del PDF; todavía no interpreta de forma completa líneas, polilíneas, bloques CAD ni símbolos constructivos.",
-      "Las superficies de muros son brutas mientras no se detecten y descuenten huecos de puertas y ventanas.",
+      "Planos v4.3 reconstruye cotas por posición del texto del PDF; todavía no interpreta de forma completa líneas, polilíneas, bloques CAD ni símbolos constructivos.",
+      openingsArea > 0 ? `Se descontaron provisionalmente ${openingsArea} m² de huecos dimensionados; confirma el conteo de puertas/ventanas antes de incorporar.` : "No se detectaron huecos dimensionados suficientes; las superficies de muros permanecen brutas.",
     ];
     if (scale === "No detectada") warnings.push("No se detectó escala; no deben inferirse longitudes gráficas no rotuladas hasta calibrarla.");
     if (!geometry) warnings.push("No se identificó una planta dimensionada con estructura espacial suficiente.");
@@ -385,6 +475,9 @@ export class PlanAnalysisService {
       pages: pdf.numPages,
       extractedText: text,
       geometry,
+      architecturalElements,
+      openingsArea,
+      netExteriorWallArea,
       measurements,
       proposals,
       warnings,
@@ -392,6 +485,24 @@ export class PlanAnalysisService {
     };
     this.save(result);
     return result;
+  }
+
+  static updateArchitecturalElement(planId: string, elementId: string, patch: Partial<Pick<PlanArchitecturalElement, "quantity" | "width" | "height" | "confirmed">>) {
+    const analysis = this.find(planId);
+    if (!analysis) return null;
+    analysis.architecturalElements = (analysis.architecturalElements ?? []).map((e) => e.id === elementId ? {
+      ...e, ...patch,
+      quantity: patch.quantity !== undefined ? Math.max(0, Number(patch.quantity) || 0) : e.quantity,
+      width: patch.width !== undefined ? Math.max(0, Number(patch.width) || 0) : e.width,
+      height: patch.height !== undefined ? Math.max(0, Number(patch.height) || 0) : e.height,
+    } : e);
+    analysis.openingsArea = openingArea(analysis.architecturalElements);
+    analysis.netExteriorWallArea = analysis.geometry?.grossExteriorWallArea !== undefined ? round(Math.max(0, analysis.geometry.grossExteriorWallArea - analysis.openingsArea), 2) : undefined;
+    const doorQty = analysis.architecturalElements.filter((e) => e.type === "door").reduce((a, b) => a + b.quantity, 0);
+    const windowQty = analysis.architecturalElements.filter((e) => e.type === "window").reduce((a, b) => a + b.quantity, 0);
+    analysis.proposals = analysis.proposals.map((p) => p.id === "P-DOORS" ? { ...p, quantity: doorQty } : p.id === "P-WINDOWS" ? { ...p, quantity: windowQty } : p.id === "P-EXT" && analysis.netExteriorWallArea !== undefined ? { ...p, quantity: analysis.netExteriorWallArea, rationale: `Superficie neta recalculada: ${analysis.geometry?.grossExteriorWallArea} m² brutos menos ${analysis.openingsArea} m² de huecos.` } : p);
+    this.save(analysis);
+    return analysis;
   }
 
   static updateProposal(planId: string, proposalId: string, patch: Partial<Pick<PlanItemProposal, "code" | "name" | "unit" | "quantity" | "wastePercentage" | "priceAdjustmentPercentage" | "manualNote">>) {
